@@ -214,6 +214,9 @@ FURNITURE_SCHEMA = vol.Schema(
         ),
         # linked entities (e.g. the TV's media player, a power sensor): None = automatic, "none" = no entity
         vol.Optional("entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
+        # screens: a procedural flicker (changing colours/brightness, light cast into the room) as though
+        # it is on, independent of any linked entity
+        vol.Optional("fake_on", default=False): bool,
         vol.Optional("power", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # smart fridge: door sensors of the left and the right door
         vol.Optional("door_left", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),

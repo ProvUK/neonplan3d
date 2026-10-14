@@ -164,6 +164,9 @@ export interface Furniture {
   icon?: string | null;
   /** Linked entity, e.g. the TV's media player (null = automatic, "none" = none). */
   entity?: EntityRef;
+  /** Screens: a procedural flicker (changing colours, brightness, light cast into the room) as though it
+   * is on, independent of any linked entity – for display items with no real media player to tie into. */
+  fake_on?: boolean;
   /** Power sensor (null = automatic: the linked entity's device or a matching name). */
   power?: EntityRef;
   /** Smart fridge: door sensors of the left (freezer) and right (fridge) door; the doors open in 3D while they report open. */

@@ -2173,6 +2173,9 @@ export class Fp3dView3d extends LitElement {
         // two entities light the halves (left/right of a bed, bottom/top of a bunk bed)
         const faces = this.stateFaces(hass, f);
         if (faces.length) screens.set(f.id, { color: faces[0].color, level: faces[0].level, faces });
+        // fake_on: a procedural flicker as though the screen is on, independent of any linked entity –
+        // for a TV/monitor with no real media player to tie into. Overrides any real state below.
+        if (f.fake_on && hasScreen(f.type)) screens.set(f.id, { color: [0, 0, 0], level: 1, fake: true });
         if (isLamp(f.type)) {
           markers.push(this.lampMarker(hass, floor, f, linked?.entity ?? null));
           continue;
@@ -2258,14 +2261,18 @@ export class Fp3dView3d extends LitElement {
         }
         if (st && hasScreen(f.type)) {
           // without the "screens" feature a screen is only lit or dark: no app colour, no picture
-          const live = hasFeature("screens");
+          const liveMedia = hasFeature("screens") && kindOf(st.entity_id) === "media";
           // a light (an aquarium, a lit panel) glows in its own colour, other entities in the neon cyan
           const lit = kindOf(st.entity_id) === "light" ? lightGlow(st) : null;
           // many TV integrations (Samsung, LG) only report "on", never "playing": on is lit, dimmed
           const tvOn = kindOf(st.entity_id) === "media" && ["playing", "on", "paused", "idle"].includes(st.state);
-          const color = live && kindOf(st.entity_id) === "media" ? appColor(st) : lit ? lit.color : isActive(st) || tvOn ? ([0.22, 0.88, 1] as [number, number, number]) : null;
-          const picture = live && kindOf(st.entity_id) === "media" ? ((st.attributes.entity_picture as string | undefined) ?? null) : null;
-          if (color) screens.set(f.id, { color, level: st.state === "playing" ? 1 : 0.6, picture, ring: ringed && hasFeature("sound") && st.state === "playing" });
+          // the generic "it's on" case (no app colour/picture, paid or not): flickers like fake_on
+          // instead of sitting on a static dot, since there is no real picture data here either way
+          const generic = !liveMedia && !lit && (isActive(st) || tvOn);
+          const color = liveMedia ? appColor(st) : lit ? lit.color : generic ? ([0.22, 0.88, 1] as [number, number, number]) : null;
+          const picture = liveMedia ? ((st.attributes.entity_picture as string | undefined) ?? null) : null;
+          if (generic && color) screens.set(f.id, { color: [0, 0, 0], level: 1, fake: true });
+          else if (color) screens.set(f.id, { color, level: st.state === "playing" ? 1 : 0.6, picture, ring: ringed && hasFeature("sound") && st.state === "playing" });
         }
         if (taken.has(id)) continue;
         taken.add(id);

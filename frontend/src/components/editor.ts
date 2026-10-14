@@ -10576,6 +10576,12 @@ export class Fp3dEditor extends LitElement {
             </div>
             <p class="fp3d-sub">${this.t("fridge_hint")}</p>`
         : nothing}
+      ${hasScreen(f.type)
+        ? html`<label class="fp3d-check fp3d-wide"
+            ><input type="checkbox" .checked=${!!f.fake_on} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ fake_on: (ev.target as HTMLInputElement).checked || undefined })} />
+            ${this.t("fake_on")}</label
+          >`
+        : nothing}
       ${hasScreen(f.type) ? this.renderPictureRules(f) : nothing}
       <p class="fp3d-sub">${this.t(lamp ? (f.type === "lamp_pendant" ? "lamp_hint_pendant" : "lamp_hint") : media ? "furn_links_hint_tv" : isRobotVacuum(f.type) ? "robot_hint" : "furn_links_hint")}</p>`;
   }

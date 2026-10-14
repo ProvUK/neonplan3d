@@ -249,6 +249,8 @@ export interface ScreenState {
   /** Furniture with a state: glowing faces on top of the item instead of a screen – the whole top, or a half of it. */
   // (see also SoundSource below)
   faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band" | "cabin" | "lights" | "burners"; color: [number, number, number]; level: number }[];
+  /** A procedural flicker (fake_on) drives colour and level instead of any real state; also casts light. */
+  fake?: boolean;
 }
 
 /** Position of the sun (from sun.sun): degrees above the horizon and clockwise from north. */
@@ -326,6 +328,28 @@ const FLASH_MS = 450;
 const EFFECT_MS = 125;
 /** Turns of the colour wheel per second while a colour effect runs. */
 const EFFECT_SPEED = 0.08;
+
+/** A pseudo-random value in [0, 1) from a seed (a cheap hash, not for anything cryptographic). */
+function pseudoRandom(seed: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * Screen-like tones for the fake_on TV flicker (fakeTvGlow), the way an LED ambient-light strip's TV
+ * simulation leans entirely on cool blues, teals, violets and soft whites – no red or yellow at all,
+ * even muted, since those read as fake rather than as light off a screen.
+ */
+const TV_GLOW_PALETTE: [number, number, number][] = [
+  [0.42, 0.56, 0.78], // sky blue
+  [0.3, 0.62, 0.6], // teal
+  [0.52, 0.46, 0.74], // soft violet
+  [0.68, 0.74, 0.82], // cool white
+  [0.38, 0.6, 0.46], // muted green
+  [0.36, 0.44, 0.56], // steel blue-grey
+  [0.46, 0.58, 0.64], // pale cyan-grey
+  [0.4, 0.42, 0.68], // indigo
+];
 const LAMP_SIZE: Record<LampModel, [number, number, number]> = {
   ceiling: [0.4, 0.4, 0.08],
   downlight: [0.1, 0.1, 0.02],
@@ -572,6 +596,10 @@ export class FloorplanViewer {
   private labelInset = 0;
   /** Floors with lamps that run a colour effect, and the floor of every device (for flashes). */
   private effectFloors = new Set<string>();
+  /** Floors with a fake_on screen (a TV/monitor with a procedural flicker instead of a real state). */
+  private fakeScreenFloors = new Set<string>();
+  /** Current and next tone of each fake_on screen's flicker, and when the current one started/ends. */
+  private tvScenes = new Map<string, { start: number; len: number; from: [number, number, number]; to: [number, number, number] }>();
   private deviceFloor = new Map<string, string>();
   private statsOn = false;
   /** Vehicles standing in parking spots (spot id -> pack item type); they join the floor geometry. */
@@ -1290,7 +1318,11 @@ export class FloorplanViewer {
   /** Screens of TVs and monitors that are on (by furniture id). */
   setScreens(screens: Map<string, ScreenState>): void {
     this.screens = screens;
-    for (const fv of this.floors) this.buildScreens(fv);
+    this.fakeScreenFloors = new Set(this.floors.filter((fv) => fv.floor.furniture.some((f) => screens.get(f.id)?.fake)).map((fv) => fv.floor.id));
+    for (const fv of this.floors) {
+      this.buildScreens(fv);
+      this.buildGlow(fv);
+    }
     this.invalidate();
   }
 
@@ -1679,6 +1711,21 @@ export class FloorplanViewer {
           else out.push({ x: d.x + Math.cos(a) * w * t, y, z: d.z + Math.sin(a) * w * t, color, level: glow.level * 0.55, kind: sideways ? "omni" : kind, room });
         }
       } else out.push({ x: d.x, y, z: d.z, color, level: glow.level, kind, room });
+    }
+    // a fake_on screen (a TV with no real state to tie into) washes the room with its flicker too
+    for (const f of fv.floor.furniture) {
+      const st = this.screens.get(f.id);
+      if (!st?.fake) continue;
+      const r = screenRect(f, fv.floor);
+      if (!r) continue;
+      const a = f.rotation * DEG;
+      const cos = Math.cos(a);
+      const sin = Math.sin(a);
+      const cx = (r.x0 + r.x1) / 2;
+      const cy = (r.y0 + r.y1) / 2;
+      const ri = roomIndexAt(fv.floor, f.x, f.z);
+      const room = zoneOf(fv.lightZones, ri);
+      out.push({ x: f.x + cx * cos - r.z * sin, y: cy, z: f.z + cx * sin + r.z * cos, color: st.color, level: st.level * 0.8, kind: "omni", room });
     }
     return out;
   }
@@ -2303,6 +2350,40 @@ export class FloorplanViewer {
   }
 
   /**
+   * A fake "left on" TV/monitor glow: like an LED ambient-light strip's TV simulation, it picks from a
+   * curated set of screen-like tones (never a saturated red or yellow – real footage rarely holds those
+   * at full strength, and they read as fake) and crossfades between them, with a continuous flicker of
+   * brightness on top so it reads as alive rather than a steady wash. Each tone's hold is itself
+   * randomised (roughly 0.15–1 s), not a fixed cycle, so it doesn't read as a metronome; phase-shifted
+   * per item so several screens never change in sync.
+   */
+  private fakeTvGlow(f: Furniture): { color: [number, number, number]; level: number } {
+    const offset = (f.x * 0.37 + f.z * 0.61 + f.id.length * 0.19) % 1;
+    const now = this.effectTime;
+    const pick = (seed: number) => TV_GLOW_PALETTE[Math.floor(pseudoRandom(seed) * TV_GLOW_PALETTE.length) % TV_GLOW_PALETTE.length];
+    let sc = this.tvScenes.get(f.id);
+    if (!sc || now >= sc.start + sc.len) {
+      const start = sc ? sc.start + sc.len : now;
+      const seed = start * 7.919 + offset * 1000;
+      sc = { start, len: 0.3 + 1.0 * pseudoRandom(seed), from: sc ? sc.to : pick(seed + 11), to: pick(seed + 23) };
+      this.tvScenes.set(f.id, sc);
+    }
+    // the last third of the hold eases into the next tone instead of cutting straight to it
+    const frac = (now - sc.start) / sc.len;
+    const mix = Math.max(0, Math.min(1, (frac - 0.66) / 0.34));
+    const color: [number, number, number] = [sc.from[0] + (sc.to[0] - sc.from[0]) * mix, sc.from[1] + (sc.to[1] - sc.from[1]) * mix, sc.from[2] + (sc.to[2] - sc.from[2]) * mix];
+    // a wider swing than a lamp's effect: real footage ranges from near-black to bright, not a
+    // constant wash, so the floor is low enough to read as genuinely dim between flickers; slower
+    // than a lamp's colour-effect speed too, so it reads as a picture changing, not a strobe
+    const flicker =
+      0.6 +
+      0.22 * Math.sin(this.effectTime * 4 + offset * 60) +
+      0.12 * Math.sin(this.effectTime * 7.5 + offset * 31) +
+      0.2 * (pseudoRandom(Math.floor(this.effectTime * 5 + offset * 90)) - 0.5);
+    return { color, level: Math.min(1, Math.max(0.08, flicker)) };
+  }
+
+  /**
    * Lamp models of the lights on a floor, merged into one mesh. The shapes are rebuilt only when a
    * lamp moves or changes; the shade colours (light colour, brightness, tap flash) are written into
    * the mesh in place, so colour effects cost no geometry.
@@ -2653,6 +2734,7 @@ export class FloorplanViewer {
     const buf = new GeoBuffer();
     for (const f of items) {
       const st = this.screens.get(f.id)!;
+      if (st.fake) Object.assign(st, this.fakeTvGlow(f));
       const a = f.rotation * DEG;
       const c = Math.cos(a);
       const s = Math.sin(a);
@@ -3775,6 +3857,7 @@ export class FloorplanViewer {
     if (this.poolActive) busy.push("pool");
     if (this.solarActive) busy.push("solar");
     if (this.effectTick) busy.push("effect");
+    if (this.fakeScreenFloors.size) busy.push("tv");
     if (robotsMoving) busy.push("robot");
     if (orbiting) busy.push("orbit");
     if (this.tintTick) busy.push("tint");
@@ -3792,7 +3875,7 @@ export class FloorplanViewer {
     // everything that keeps drawing (also the energy flow, effects, robots) shows in the frame rate
     this.reportStats(now, busy);
     if (moving) this.invalidate();
-    if (this.effectFloors.size && !this.effectTimer && !document.hidden) {
+    if ((this.effectFloors.size || this.fakeScreenFloors.size) && !this.effectTimer && !document.hidden) {
       // colour effects: a few steps per second are enough and keep the tablet idle in between
       const ms = this.lowQuality ? 2 * EFFECT_MS : EFFECT_MS;
       this.effectTimer = setTimeout(() => {
@@ -3800,8 +3883,12 @@ export class FloorplanViewer {
         this.effectTime += ms / 1000;
         this.effectTick = true;
         for (const fv of this.floors) {
-          if (fv.o < 0.02 || !this.effectFloors.has(fv.floor.id)) continue;
-          this.buildLamps(fv);
+          if (fv.o < 0.02) continue;
+          const lamps = this.effectFloors.has(fv.floor.id);
+          const screens = this.fakeScreenFloors.has(fv.floor.id);
+          if (!lamps && !screens) continue;
+          if (lamps) this.buildLamps(fv);
+          if (screens) this.buildScreens(fv);
           this.buildGlow(fv);
         }
         this.invalidate();
