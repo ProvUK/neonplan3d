@@ -14,7 +14,9 @@ import {
   CanvasTexture,
   ClampToEdgeWrapping,
   Color,
+  BackSide,
   DoubleSide,
+  FrontSide,
   Group,
   LineBasicMaterial,
   LineSegments,
@@ -45,7 +47,8 @@ import {
 } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
-import { centroid, pointInPolygon, openingStyle, WALL_LAMP_Y } from "../model.ts";
+import { centroid, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y } from "../model.ts";
+import { buildEarth } from "./earth.ts";
 import { clampIntoRoom } from "../geometry/snap.ts";
 import { roofRider, roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoles, type FloorGeometry } from "./build.ts";
@@ -60,7 +63,7 @@ export { FloorMap, WalkCamera, type WalkState } from "./walk.ts";
 export const funLib = { Group, Mesh, MeshBasicMaterial, CanvasTexture, Color, PlaneGeometry, BufferGeometry: Geometry, Float32BufferAttribute, DoubleSide };
 
 export type { PipeTube };
-import { mountBase, packItem, setPacks, type FurniturePack } from "../packs.ts";
+import { isCooktopZone, mountBase, packItem, setPacks, type FurniturePack } from "../packs.ts";
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofWindowState } from "./roof.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
@@ -385,6 +388,10 @@ interface FloorMaterials {
   halos: PointsMaterial;
   cones: MeshBasicMaterial;
   screens: MeshBasicMaterial;
+  /** The earth around a floor below the ground (outer faces; from inside when the floor is open) and light wells. */
+  earth: MeshBasicMaterial;
+  earthWell: MeshBasicMaterial;
+  earthLines: LineBasicMaterial;
 }
 
 interface FloorView {
@@ -763,6 +770,8 @@ export class FloorplanViewer {
   setBuilding(building: Building): void {
     const first = this.building === null;
     this.building = building;
+    // this bundle's own copy of the ground (outdoor areas, earth around cellars)
+    setTerrain(building);
     this.rebuild();
     if (first) this.fit(0);
     this.invalidate();
@@ -1838,6 +1847,9 @@ export class FloorplanViewer {
       }),
       cones: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
       screens: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
+      earth: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
+      earthWell: themed(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }), this.themeUniform),
+      earthLines: themed(new LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }), this.themeUniform, true),
     };
   }
 
@@ -1926,6 +1938,13 @@ export class FloorplanViewer {
       // pool water after the basin, see-through
       const waterMesh = new Mesh(geo.water, materials.water);
       waterMesh.renderOrder = 4;
+      // a cellar, a semi-basement: the earth around it (never tapped)
+      const lowestWithRooms = Math.min(...b.floors.filter((f) => f.rooms.length).map((f) => f.elevation));
+      const earthGeo = buildEarth(b, floor, geo.openings, floor.elevation === lowestWithRooms);
+      const earthParts = earthGeo
+        ? [new Mesh(earthGeo.earth.geometry(), materials.earth), new Mesh(earthGeo.wells.geometry(), materials.earthWell), new LineSegments(earthGeo.lines.geometry(), materials.earthLines)]
+        : [];
+      for (const m of earthParts) m.userData.earth = true;
       group.add(
         floorMesh,
         shadowMesh,
@@ -1948,6 +1967,7 @@ export class FloorplanViewer {
         screenMesh,
         glassWalls,
         ...(solarMesh ? [solarMesh] : []),
+        ...earthParts,
       );
       this.root.add(group);
 
@@ -2219,6 +2239,13 @@ export class FloorplanViewer {
       }
       fv.ty = ty;
       fv.to = to;
+      // an open floor in the ground: the earth is seen from inside, like a pit around it (the near side goes)
+      const pit = sel === fv;
+      const side = pit ? BackSide : FrontSide;
+      if (fv.materials.earth.side !== side) {
+        fv.materials.earth.side = side;
+        fv.materials.earth.needsUpdate = true;
+      }
       if (immediate) {
         fv.y = ty;
         fv.o = to;
@@ -2257,6 +2284,15 @@ export class FloorplanViewer {
     m.halos.opacity = fv.o;
     m.cones.opacity = fv.o;
     m.screens.opacity = fv.o;
+    for (const mat of [m.earth, m.earthWell]) {
+      if (mat.transparent === solid) {
+        mat.transparent = !solid;
+        mat.depthWrite = solid;
+        mat.needsUpdate = true;
+      }
+      mat.opacity = fv.o;
+    }
+    m.earthLines.opacity = fv.o;
     for (const pic of fv.screenPics.values()) {
       const mat = pic.mesh.material as MeshBasicMaterial;
       mat.transparent = fv.o < 0.999;
@@ -2766,6 +2802,13 @@ export class FloorplanViewer {
               pushPackGlow(buf, model, f, base, col.getHex(), glassy);
               continue;
             }
+          }
+          if (face.part === "burners" && packItem(f.type)) {
+            // a pack cooktop: its own zones (thin discs on its top) glow
+            const model = packItem(f.type)!;
+            const col = new Color(...face.color.map((v) => Math.min(1, v * (0.25 + 0.6 * face.level))) as [number, number, number]);
+            pushPackGlow(buf, model, f, base, col.getHex(), isCooktopZone);
+            continue;
           }
           if (face.part === "burners") {
             // a cooktop's four zones glow on its top (where the built-in stove draws them)
