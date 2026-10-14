@@ -176,6 +176,10 @@ export interface DeviceMarker {
   lightY?: number;
   /** A colour effect runs (colour loop …): the colour is animated in 3D. */
   effect?: boolean;
+  /** Ceiling fan: this marker is the blades (its own entity), not the hub/shade light. */
+  fanBlades?: boolean;
+  /** Ceiling fan blades: 0 (off) to 1 (full speed) – how fast they spin. */
+  fanSpeed?: number;
   /** Pendant shape: shade (default), globe, cone or drum. */
   variant?: string | null;
   /** Formatted power, e.g. "85 W". */
@@ -200,7 +204,7 @@ export interface TrailSpot {
   age: number;
 }
 
-export type LampModel = "ceiling" | "downlight" | "spot" | "panel" | "pendant" | "floor" | "uplight" | "table" | "wall" | "strip" | "bollard" | "garden";
+export type LampModel = "ceiling" | "ceiling_fan" | "downlight" | "spot" | "panel" | "pendant" | "floor" | "uplight" | "table" | "wall" | "strip" | "bollard" | "garden";
 
 /** Piece of energy cable (floor-local coordinates); the flow runs from a to b. */
 /** A ray from the camera through the pointer, in building coordinates (heights above the ground). */
@@ -326,11 +330,13 @@ const LAMP_SHADE = 0x1d2946;
 /** Lamps that hang from the ceiling (hidden in the cut view). */
 /** LED strips mounted below this height (metres) light upwards instead of down. */
 const LOW_STRIP = 1.0;
-const HANGING = new Set<LampModel>(["ceiling", "downlight", "spot", "panel", "pendant", "strip"]);
+const HANGING = new Set<LampModel>(["ceiling", "ceiling_fan", "downlight", "spot", "panel", "pendant", "strip"]);
 const FLASH_MS = 450;
 const EFFECT_MS = 125;
 /** Turns of the colour wheel per second while a colour effect runs. */
 const EFFECT_SPEED = 0.08;
+/** Radians per second a ceiling fan's blades spin at full speed (fanSpeed 1); about one turn every 1.4 s. */
+const FAN_SPIN_SPEED = (2 * Math.PI) / 1.4;
 
 /** A pseudo-random value in [0, 1) from a seed (a cheap hash, not for anything cryptographic). */
 function pseudoRandom(seed: number): number {
@@ -355,6 +361,7 @@ const TV_GLOW_PALETTE: [number, number, number][] = [
 ];
 const LAMP_SIZE: Record<LampModel, [number, number, number]> = {
   ceiling: [0.4, 0.4, 0.08],
+  ceiling_fan: [1.2, 1.2, 0.35],
   downlight: [0.1, 0.1, 0.02],
   spot: [0.1, 0.1, 0.14],
   panel: [0.6, 0.6, 0.03],
@@ -605,6 +612,10 @@ export class FloorplanViewer {
   private effectFloors = new Set<string>();
   /** Floors with a fake_on screen (a TV/monitor with a procedural flicker instead of a real state). */
   private fakeScreenFloors = new Set<string>();
+  /** Floors with a spinning ceiling fan's blades. */
+  private fanFloors = new Set<string>();
+  /** Elapsed spin units (radians at full speed) of ceiling fan blades; each fan scales it by its own speed. */
+  private fanAngle = 0;
   /** Current and next tone of each fake_on screen's flicker, and when the current one started/ends. */
   private tvScenes = new Map<string, { start: number; len: number; from: [number, number, number]; to: [number, number, number] }>();
   private deviceFloor = new Map<string, string>();
@@ -854,6 +865,7 @@ export class FloorplanViewer {
     this.devices = devices;
     this.labelsDirty = true;
     this.effectFloors = new Set(devices.filter((d) => d.effect && d.glow).map((d) => d.floorId));
+    this.fanFloors = new Set(devices.filter((d) => d.fanBlades && (d.fanSpeed ?? 0) > 0).map((d) => d.floorId));
     this.deviceFloor = new Map(devices.map((d) => [d.id, d.floorId]));
     const seen = new Set<string>();
     for (const d of devices) {
@@ -1693,6 +1705,7 @@ export class FloorplanViewer {
       const base = d.base ?? 0;
       const kinds: Record<LampModel, [number, LightKind]> = {
         ceiling: [H - 0.12, "ceiling"],
+        ceiling_fan: [H - 0.3, "ceiling"],
         downlight: [H - 0.03, "spot"],
         spot: [H - h, "spot"],
         panel: [H - 0.05, "ceiling"],
@@ -2435,10 +2448,12 @@ export class FloorplanViewer {
       return Math.round(k * 10) / 10;
     };
     const lamps = this.devices.filter((d) => d.floorId === fv.floor.id && (d.lamp || d.model));
+    // a spinning fan's blade angle keeps the shape signature changing, so it rebuilds every tick
+    const spinOf = (d: DeviceMarker) => (d.fanBlades && d.fanSpeed ? (this.fanAngle * d.fanSpeed).toFixed(3) : "");
     const shapeSig =
       this.wallMode +
       (this.lowQuality ? "L" : this.highQuality ? "H" : "M") +
-      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0}`).join(";");
+      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0},${spinOf(d)}`).join(";");
     const glows = lamps.map((d) => this.glowOf(d));
     const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}`).join(";");
     if (shapeSig !== fv.lampShapeSig || !fv.lampMesh.geometry.getAttribute("position")) {
@@ -2459,7 +2474,7 @@ export class FloorplanViewer {
         // shades get the sentinel colour and are recoloured below
         if (d.model) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
         else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w: pw, d: pd, h: ph, mirror: d.mirror }, d.base ?? 0, SHADE_SENTINEL);
-        else pushLampModel(buf, { ...d, lamp: d.lamp! }, d.top ?? H, SHADE_SENTINEL);
+        else pushLampModel(buf, { ...d, lamp: d.lamp!, spinAngle: spinOf(d) ? this.fanAngle * (d.fanSpeed ?? 0) : 0 }, d.top ?? H, SHADE_SENTINEL);
         // keyed by the furniture: two lamps may share one light (one switch for two strips)
         ranges.set(d.furnitureId ?? d.id, { start, end: buf.count });
         if (d.pickable !== false) tris.push({ id: d.id, start, end: buf.count });
@@ -2701,6 +2716,7 @@ export class FloorplanViewer {
       const ang = (d.rotation ?? 0) * DEG;
       const y = {
         ceiling: Ht - 0.07,
+        ceiling_fan: Ht - 0.2,
         downlight: Ht - 0.03,
         spot: Ht - h,
         panel: Ht - 0.03,
@@ -3901,6 +3917,7 @@ export class FloorplanViewer {
     if (this.solarActive) busy.push("solar");
     if (this.effectTick) busy.push("effect");
     if (this.fakeScreenFloors.size) busy.push("tv");
+    if (this.fanFloors.size) busy.push("fan");
     if (robotsMoving) busy.push("robot");
     if (orbiting) busy.push("orbit");
     if (this.tintTick) busy.push("tint");
@@ -3918,19 +3935,21 @@ export class FloorplanViewer {
     // everything that keeps drawing (also the energy flow, effects, robots) shows in the frame rate
     this.reportStats(now, busy);
     if (moving) this.invalidate();
-    if ((this.effectFloors.size || this.fakeScreenFloors.size) && !this.effectTimer && !document.hidden) {
+    if ((this.effectFloors.size || this.fakeScreenFloors.size || this.fanFloors.size) && !this.effectTimer && !document.hidden) {
       // colour effects: a few steps per second are enough and keep the tablet idle in between
       const ms = this.lowQuality ? 2 * EFFECT_MS : EFFECT_MS;
       this.effectTimer = setTimeout(() => {
         this.effectTimer = undefined;
         this.effectTime += ms / 1000;
+        this.fanAngle += (ms / 1000) * FAN_SPIN_SPEED;
         this.effectTick = true;
         for (const fv of this.floors) {
           if (fv.o < 0.02) continue;
           const lamps = this.effectFloors.has(fv.floor.id);
           const screens = this.fakeScreenFloors.has(fv.floor.id);
-          if (!lamps && !screens) continue;
-          if (lamps) this.buildLamps(fv);
+          const fans = this.fanFloors.has(fv.floor.id);
+          if (!lamps && !screens && !fans) continue;
+          if (lamps || fans) this.buildLamps(fv);
           if (screens) this.buildScreens(fv);
           this.buildGlow(fv);
         }
@@ -4426,7 +4445,7 @@ export function createViewer(host: HTMLElement, options?: ViewerOptions): Floorp
 /** Model of a lamp into a buffer (3D view and furniture previews); `H` is the ceiling height. */
 export function pushLampModel(
   buf: GeoBuffer,
-  d: Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "variant" | "roll" | "upright"> & { lamp: LampModel },
+  d: Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "variant" | "roll" | "upright" | "fanBlades"> & { lamp: LampModel; spinAngle?: number },
   H: number,
   shadeCol: number,
 ): void {
@@ -4452,6 +4471,64 @@ export function pushLampModel(
       cyl(r * 0.25, H - 0.04, H, LAMP_BODY, LAMP_BODY, 8);
       cyl(r, H - Math.max(0.04, h) - 0.035, H - 0.04, shadeCol, shadeCol);
       break;
+    case "ceiling_fan": {
+      // two independently tappable parts share this fixture: the hub/canopy/shade (the light, drawn
+      // when this marker is not the blades) and the blades (their own entity, spinning when it runs)
+      const hubR = Math.max(0.09, r * 0.17);
+      const hubH = 0.1;
+      const canopyR = Math.max(0.05, hubR * 0.7);
+      const hubTop = H - 0.06;
+      const hubBottom = hubTop - hubH;
+      if (d.fanBlades) {
+        // 5 flat blades radiating from the hub at its mid height, each its own rotated quad (the
+        // device's own rotation covers the whole fixture, not each blade's own angle around it),
+        // offset together by the current spin angle while the fan runs
+        const bladeCount = 5;
+        const bladeY0 = hubBottom + hubH * 0.32;
+        const bladeY1 = bladeY0 + 0.014;
+        const bladeOuter = Math.max(hubR + 0.15, r);
+        const bladeHalfWidth = Math.max(0.05, hubR * 0.85);
+        const spin = d.spinAngle ?? 0;
+        for (let i = 0; i < bladeCount; i++) {
+          const a = ang + spin + (i / bladeCount) * Math.PI * 2;
+          const ca2 = Math.cos(a);
+          const sa2 = Math.sin(a);
+          const px = -sa2;
+          const pz = ca2;
+          const ix = d.x + ca2 * hubR * 0.9;
+          const iz = d.z + sa2 * hubR * 0.9;
+          const ox = d.x + ca2 * bladeOuter;
+          const oz = d.z + sa2 * bladeOuter;
+          const poly: [number, number][] = [
+            [ix + px * bladeHalfWidth, iz + pz * bladeHalfWidth],
+            [ox + px * bladeHalfWidth * 0.55, oz + pz * bladeHalfWidth * 0.55],
+            [ox - px * bladeHalfWidth * 0.55, oz - pz * bladeHalfWidth * 0.55],
+            [ix - px * bladeHalfWidth, iz - pz * bladeHalfWidth],
+          ];
+          pushPrism(buf, poly, bladeY0, bladeY1, LAMP_BODY, LAMP_BODY, { aoFrom: 0, bottom: true });
+        }
+      } else {
+        // canopy and short downrod, then the motor housing
+        cyl(canopyR, H - 0.015, H, LAMP_BODY, LAMP_BODY, 10);
+        cyl(0.02, hubTop, H - 0.015, LAMP_BODY, LAMP_BODY, 6);
+        cyl(hubR, hubBottom, hubTop, LAMP_BODY, LAMP_BODY, 16);
+        // a tapered light shade hanging below the hub, approximated as stacked bands (like the pendant
+        // "cone" variant below) since prisms here extrude one footprint straight, not a true taper
+        const shadeTopY = hubBottom - 0.002;
+        const shadeDepth = Math.max(0.12, h - hubH - 0.08);
+        const shadeBottomY = shadeTopY - shadeDepth;
+        const shadeTopHalf = hubR * 0.55;
+        const shadeBottomHalf = Math.max(shadeTopHalf + 0.04, hubR * 1.35);
+        const bands = 6;
+        for (let i = 0; i < bands; i++) {
+          const y0b = shadeBottomY + (shadeDepth * i) / bands;
+          const y1b = shadeBottomY + (shadeDepth * (i + 1)) / bands;
+          const hw = shadeBottomHalf + (shadeTopHalf - shadeBottomHalf) * ((i + 0.5) / bands);
+          box(-hw, hw, -hw, hw, y0b, y1b, shadeCol, shadeCol);
+        }
+      }
+      break;
+    }
     case "pendant": {
       const bottom = Math.max(0.4, H - h);
       cyl(0.06, H - 0.02, H, LAMP_BODY, LAMP_BODY, 8);

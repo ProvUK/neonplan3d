@@ -10189,6 +10189,12 @@ export class Fp3dEditor extends LitElement {
             >
           </div>`
         : nothing}
+      ${f.type === "lamp_ceiling_fan"
+        ? html`<div class="fp3d-form fp3d-links">
+              ${this.entitySelect(this.t("furn_fan_entity"), f.fan_entity ?? null, undefined, this.entityOptions((id) => /^fan\./.test(id)), (v) => this.updateFurniture({ fan_entity: v }))}
+            </div>
+            <p class="fp3d-sub">${this.t("ceiling_fan_hint")}</p>`
+        : nothing}
       ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing}
       ${f.type.startsWith("pack:mastershort.vehicles:") && this.isAdmin
         ? html`<section>

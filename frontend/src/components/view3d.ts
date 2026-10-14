@@ -2202,6 +2202,11 @@ export class Fp3dView3d extends LitElement {
         if (fakeScreensOn && f.fake_on && hasScreen(f.type)) screens.set(f.id, { color: [0, 0, 0], level: 1, fake: true });
         if (isLamp(f.type)) {
           markers.push(this.lampMarker(hass, floor, f, linked?.entity ?? null));
+          // a ceiling fan is two separately tappable things sharing one fixture: the hub/shade (the
+          // light, above) and the blades (the fan, its own entity) – each its own marker and pick region
+          if (f.type === "lamp_ceiling_fan" && f.fan_entity && f.fan_entity !== "none") {
+            markers.push(this.lampMarker(hass, floor, f, f.fan_entity, true));
+          }
           continue;
         }
         // a home battery with only its charge, a wallbox with only its status still gets its marker;
@@ -2595,7 +2600,7 @@ export class Fp3dView3d extends LitElement {
   }
 
   /** A lamp: its 3D model glows with the linked light and is tapped directly. */
-  private lampMarker(hass: HomeAssistant, floor: Building["floors"][number], f: Furniture, entity: string | null): DeviceMarker & { fromFurniture: boolean } {
+  private lampMarker(hass: HomeAssistant, floor: Building["floors"][number], f: Furniture, entity: string | null, fanBlades = false): DeviceMarker & { fromFurniture: boolean } {
     const st = entity ? hass.states[entity] : undefined;
     const item = packItem(f.type);
     const model = LAMP_MODEL[f.type] ?? item?.light ?? "floor";
@@ -2616,7 +2621,7 @@ export class Fp3dView3d extends LitElement {
     const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
     // under a sloped roof the ceiling is the roof's underside: lamps hung from it follow the slope (#168)
     const ceiling = this.ceilingAt(floor, f.x, f.z);
-    const hung = (item ? item.mount === "ceiling" : ["ceiling", "downlight", "spot", "panel", "pendant"].includes(model)) && f.mount_y == null;
+    const hung = (item ? item.mount === "ceiling" : ["ceiling", "ceiling_fan", "downlight", "spot", "panel", "pendant"].includes(model)) && f.mount_y == null;
     const slopeDrop = hung ? floor.height - ceiling : 0;
     const base = item && hung ? Math.max(0, base0 - slopeDrop) : base0;
     // a spot lowered by hand hangs from its own "ceiling" (under a wall cabinet, #311)
@@ -2629,6 +2634,7 @@ export class Fp3dView3d extends LitElement {
         : base + f.h + 0.2
       : {
       ceiling: H - 0.3,
+      ceiling_fan: H - 0.45,
       downlight: H - 0.25,
       spot: H - 0.35,
       panel: H - 0.25,
@@ -2641,6 +2647,9 @@ export class Fp3dView3d extends LitElement {
       bollard: base + f.h + 0.25,
       garden: base + f.h + 0.25,
     }[model];
+    // the blades are a second tappable thing on the same fixture (their own entity, no light to glow):
+    // a distinct id for the shade-recolour lookup below, so they don't share the light's range (#faketv)
+    const percentage = typeof st?.attributes.percentage === "number" ? st.attributes.percentage : null;
     return {
       // a lamp without a light keeps a key of its own (it is drawn, but not tappable)
       id: entity ?? `lamp:${f.id}`,
@@ -2649,12 +2658,12 @@ export class Fp3dView3d extends LitElement {
       x: f.x,
       z: f.z,
       y,
-      icon: iconSvg("light"),
+      icon: iconSvg(fanBlades ? "fan" : "light"),
       name: f.name || (entity ? entityName(hass, entity) : furnitureName(hass, f.type)),
       text: st ? stateText(hass, st) : "",
       active: st ? isActive(st) : false,
       unavailable: st ? isUnavailable(st) : false,
-      glow: st ? scaleGlow(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_scale) : null,
+      glow: fanBlades ? null : st ? scaleGlow(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_scale) : null,
       lamp: model,
       rotation: f.rotation,
       mirror: !!f.mirror,
@@ -2664,7 +2673,9 @@ export class Fp3dView3d extends LitElement {
       base,
       top,
       pickable: !!entity,
-      furnitureId: f.id,
+      furnitureId: fanBlades ? `${f.id}:fan` : f.id,
+      fanBlades,
+      fanSpeed: fanBlades ? (st && isActive(st) ? (percentage != null ? Math.max(0.15, percentage / 100) : 1) : 0) : undefined,
       pack: item ? f.type : null,
       lightY: item ? (item.mount === "ceiling" ? base : base + f.h * 0.85) : undefined,
       // a running colour effect – not a "mode" some integrations report as their effect (LocalTuya: "white",

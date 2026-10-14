@@ -218,6 +218,9 @@ FURNITURE_SCHEMA = vol.Schema(
         # it is on, independent of any linked entity
         vol.Optional("fake_on", default=False): bool,
         vol.Optional("power", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
+        # ceiling fan: its fan entity, separate from the item's own "entity" (the fan's light); tapping
+        # the blades toggles this one, tapping the hub/shade toggles the light
+        vol.Optional("fan_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # smart fridge: door sensors of the left and the right door
         vol.Optional("door_left", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Optional("door_right", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
