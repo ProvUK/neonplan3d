@@ -11864,6 +11864,10 @@ export class Fp3dEditor extends LitElement {
           ><input type="checkbox" .checked=${s.sun_patches !== false} @change=${(ev: Event) => set({ sun_patches: (ev.target as HTMLInputElement).checked })} />
           ${this.t("sun_patches")}</label
         >
+        <label class="fp3d-check fp3d-wide" title=${this.t("fake_screens_hint")}
+          ><input type="checkbox" .checked=${s.fake_screens !== false} @change=${(ev: Event) => set({ fake_screens: (ev.target as HTMLInputElement).checked })} />
+          ${this.t("fake_screens")}</label
+        >
       </div>
       <p class="fp3d-sub">${this.t("north_hint")} ${this.t("weather_entity_hint")}</p>
     </details>`;

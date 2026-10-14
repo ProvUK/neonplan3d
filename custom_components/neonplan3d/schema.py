@@ -693,6 +693,9 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("outage_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # sunlight through the windows as patches on the floor
         vol.Optional("sun_patches", default=True): bool,
+        # fake_on screens flicker and the "generic on, no app colour" case flickers too; off, both
+        # show a plain static look instead, without losing any item's own fake_on flag
+        vol.Optional("fake_screens", default=True): bool,
         # fun pack "Halloween": the ghost floating through the house (on unless switched off)
         vol.Optional("halloween", default=None): vol.Any(
             None, vol.Schema({vol.Optional("ghost", default=True): bool}, extra=vol.ALLOW_EXTRA)

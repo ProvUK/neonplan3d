@@ -585,6 +585,9 @@ export interface BuildingSettings {
   outage_entity?: string | null;
   /** Sunlight falls through the windows as patches on the floor (default on, #266). */
   sun_patches?: boolean;
+  /** fake_on screens flicker and the "generic on" case flickers too (default on); off, both show a
+   * plain static look instead, without losing any item's own fake_on flag. */
+  fake_screens?: boolean;
   /** The ground around the house: its height and the earth around cellars. */
   terrain?: Terrain | null;
   /** Fun pack "Halloween": the ghost that floats through the house now and then (on unless switched off). */

@@ -2183,6 +2183,9 @@ export class Fp3dView3d extends LitElement {
     const consumers: Consumer[] = [];
     const screens = new Map<string, ScreenState>();
     const targets = new Map<string, string>();
+    // off: fake_on and the "generic on" case show their plain static look instead of flickering,
+    // without losing any item's own fake_on flag
+    const fakeScreensOn = b.settings.fake_screens !== false;
     // Pool Pro: what the (first) pool reports, for the devices of its technical room
     const poolFirst = hasFeature("pool") ? poolAreas(b.floors)[0] : undefined;
     const poolLive = poolFirst && this.building ? poolState(hass, poolLinksWithDevices(poolFirst.area.pool, this.building.floors)) : poolFirst ? poolState(hass, poolFirst.area.pool) : null;
@@ -2195,7 +2198,8 @@ export class Fp3dView3d extends LitElement {
         if (faces.length) screens.set(f.id, { color: faces[0].color, level: faces[0].level, faces });
         // fake_on: a procedural flicker as though the screen is on, independent of any linked entity –
         // for a TV/monitor with no real media player to tie into. Overrides any real state below.
-        if (f.fake_on && hasScreen(f.type)) screens.set(f.id, { color: [0, 0, 0], level: 1, fake: true });
+        // Off at the building level, the screen just stays dark instead (the flag itself is kept).
+        if (fakeScreensOn && f.fake_on && hasScreen(f.type)) screens.set(f.id, { color: [0, 0, 0], level: 1, fake: true });
         if (isLamp(f.type)) {
           markers.push(this.lampMarker(hass, floor, f, linked?.entity ?? null));
           continue;
@@ -2291,7 +2295,9 @@ export class Fp3dView3d extends LitElement {
           const generic = !liveMedia && !lit && (isActive(st) || tvOn);
           const color = liveMedia ? appColor(st) : lit ? lit.color : generic ? ([0.22, 0.88, 1] as [number, number, number]) : null;
           const picture = liveMedia ? ((st.attributes.entity_picture as string | undefined) ?? null) : null;
-          if (generic && color) screens.set(f.id, { color: [0, 0, 0], level: 1, fake: true });
+          // off at the building level, the generic case keeps its original static dot instead – there is
+          // real state behind it, unlike fake_on, so it still shows as on
+          if (fakeScreensOn && generic && color) screens.set(f.id, { color: [0, 0, 0], level: 1, fake: true });
           else if (color) screens.set(f.id, { color, level: st.state === "playing" ? 1 : 0.6, picture, ring: ringed && hasFeature("sound") && st.state === "playing" });
         }
         if (taken.has(id)) continue;
