@@ -5,8 +5,10 @@
 
 import { Color } from "three";
 import type { Furniture, Vec2 } from "../model.ts";
-import { builtinBase, stairsULayout, POOL_VALVE_Y } from "../model.ts";
-import { mountBase, packItem, packScreen, type PackItem } from "../packs.ts";
+import { builtinBase, gangsOf, stairsULayout, POOL_VALVE_Y } from "../model.ts";
+import { isRobotVacuum, mountBase, packItem, packMotion, packMovingPart, packRobotCentre, packRobotPart, packScreen, type PackItem, type PackMotion, type PackPart } from "../packs.ts";
+import { fitParts } from "../pack-scale.ts";
+import { binColors, binShape, householdCountry, mailboxShape, type BinShape, type MailboxShape } from "../household.ts";
 import type { Floor } from "../model.ts";
 import { ALWAYS, DEG, EDGE_TOP, GeoBuffer, LineBuffer, pushLoft, pushLyingCyl, pushPrism, shade } from "./geo.ts";
 
@@ -41,6 +43,11 @@ class Builder {
   private readonly tf: Tf;
   /** The transform mirrors (negative determinant): parts not wound by ccw() come out inside out. */
   readonly mirrored: boolean;
+
+  /** The vertex colours drawn so far (a part's own range is lifted for the light looks). */
+  get colors(): number[] {
+    return this.buf.c;
+  }
 
   constructor(buf: GeoBuffer, lines: LineBuffer, tf: Tf) {
     this.buf = buf;
@@ -101,9 +108,8 @@ class Builder {
     const along = axis === "x" ? cx : cz;
     const across = axis === "x" ? cz : cx;
     const at = (a: number, c: number): Vec2 => (axis === "x" ? this.tf(a, c) : this.tf(c, a));
-    const p0 = this.buf.p.length;
+    // the faces are turned outwards in world space already (also when the builder mirrors)
     pushLyingCyl(this.buf, at, along - len / 2, along + len / 2, across, cy, r, side, cap, n);
-    if (this.mirrored) flipWinding(this.buf, p0);
     if (edges) {
       for (const a of [along - len / 2, along + len / 2]) {
         for (let i = 0; i < n; i++) {
@@ -398,6 +404,211 @@ function fridge(b: Builder, w: number, d: number, h: number): void {
   b.seg(hx, split - 0.4, d / 2 + 0.015, hx, split - 0.08, d / 2 + 0.015, EDGE_GLOW);
 }
 
+/** A real colour toned into the neon look: darker for a body, a little brighter for a lid. */
+const tone = (hex: string, k: number) => shade(parseInt(hex.slice(1), 16), k).getHex();
+
+/**
+ * The blueprint and day looks keep only bright, strong colours and turn the rest into their own tones: waste bins
+ * are drawn in their full colour there, or a brown or blue bin turns blue or grey like any cupboard (#609).
+ */
+let lightLook = false;
+export function setLightLook(on: boolean): void {
+  lightLook = on;
+}
+
+/** Vertex colours from `from` on: saturated ones darkened by the shading are lifted back to a kept brightness. */
+export function keepBright(c: number[], from: number): void {
+  for (let i = from; i + 2 < c.length; i += 3) {
+    const mx = Math.max(c[i], c[i + 1], c[i + 2]);
+    const mn = Math.min(c[i], c[i + 1], c[i + 2]);
+    // wheels and dark parts stay dark; grey and white parts follow the look
+    if (mx < 0.1 || (mx - mn) / mx < 0.45 || mx >= 0.62) continue;
+    const k = 0.62 / mx;
+    c[i] *= k;
+    c[i + 1] *= k;
+    c[i + 2] *= k;
+  }
+}
+
+/**
+ * A waste bin in its shape and colours (household.ts): wheelie bins taper to the bottom and have their wheels and
+ * handle at the back (-z), a 1100 l container stands on four castors, a sack is tied at the top.
+ */
+function wasteBin(b: Builder, w: number, d: number, h: number, shape: BinShape, colors: [string, string]): void {
+  // in the light looks at least as bright as the looks keep a colour (a dark brown or green bin too)
+  const full = (hex: string) => {
+    const mx = Math.max(...new Color(hex).toArray());
+    return tone(hex, mx > 0.05 ? Math.max(1, 0.62 / mx) : 1);
+  };
+  const body = lightLook ? full(colors[0]) : tone(colors[0], 0.55);
+  const lid = lightLook ? full(colors[1]) : tone(colors[1], 0.8);
+  const lidTop = tone(colors[1], 1);
+  if (shape === "bag") {
+    // a full sack: wider in the middle, gathered and tied at the top
+    b.loft([-w * 0.42, w * 0.42, -d * 0.4, d * 0.4], [-w / 2, w / 2, -d / 2, d / 2], 0, h * 0.55, body, body, EDGE_FAINT);
+    b.loft([-w / 2, w / 2, -d / 2, d / 2], [-w * 0.12, w * 0.12, -d * 0.12, d * 0.12], h * 0.55, h * 0.9, lid, lid, EDGE_FAINT);
+    b.cyl(0, 0, Math.min(w, d) * 0.1, h * 0.9, h, lidTop, lidTop, 8);
+    return;
+  }
+  if (shape === "caddy") {
+    b.loft([-w * 0.45, w * 0.45, -d * 0.45, d * 0.45], [-w / 2, w / 2, -d / 2, d / 2], 0, h * 0.85, body, body, EDGE_FURN);
+    b.box(-w / 2, w / 2, h * 0.85, h * 0.95, -d / 2, d / 2, lid, lidTop, EDGE_FAINT);
+    // the carrying handle over the lid
+    b.box(-w * 0.42, -w * 0.36, h * 0.95, h, -0.01, 0.01, lid);
+    b.box(w * 0.36, w * 0.42, h * 0.95, h, -0.01, 0.01, lid);
+    b.box(-w * 0.42, w * 0.42, h * 0.98, h, -0.01, 0.01, lid);
+    return;
+  }
+  if (shape === "underground") {
+    // only the column of an underground container stands out of the ground: a slot in front, the lid on top
+    const r = Math.min(w, d) * 0.32;
+    b.cyl(0, 0, r, 0, h * 0.9, body, body, 16, EDGE_FURN);
+    b.cyl(0, 0, r * 1.08, h * 0.9, h, lid, lidTop, 16, EDGE_FAINT);
+    b.box(-r * 0.5, r * 0.5, h * 0.62, h * 0.8, r * 0.7, r * 1.02, C.dark);
+    // the paved plate around it
+    b.box(-w / 2, w / 2, 0, 0.02, -d / 2, d / 2, C.metal, C.metal, EDGE_FAINT);
+    return;
+  }
+  if (shape === "bin1100") {
+    const cast = 0.14;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(sx * (w / 2 - 0.12), sz * (d / 2 - 0.12), 0.05, 0, cast, C.dark, C.dark, 8);
+    b.loft([-w / 2 + 0.06, w / 2 - 0.06, -d / 2 + 0.06, d / 2 - 0.08], [-w / 2, w / 2, -d / 2, d / 2], cast, h - 0.1, body, body, EDGE_FURN);
+    // two lid halves, the front one a little lower (a rounded lid seen as two slopes)
+    b.loft([-w / 2, w / 2, -d / 2, 0], [-w / 2, w / 2, -d / 2, 0], h - 0.1, h, lid, lidTop, EDGE_FAINT);
+    b.loft([-w / 2, w / 2, 0, d / 2], [-w / 2, w / 2, 0, d / 2 - 0.05], h - 0.1, h - 0.03, lid, lidTop, EDGE_FAINT);
+    return;
+  }
+  // wheelie bins (120 l, 240 l, a multi-compartment bin): wheels and handle at the back
+  const wheel = Math.min(0.2, h * 0.19);
+  const back = -d / 2;
+  for (const sx of [-1, 1]) b.lyingCyl("x", sx * (w / 2 - 0.05), back + wheel / 2 + 0.01, 0, wheel, 0.05, wheel, C.dark, C.metal, 12);
+  b.loft([-w * 0.42, w * 0.42, back + 0.07, d / 2 - 0.05], [-w / 2 + 0.01, w / 2 - 0.01, back + 0.05, d / 2 - 0.01], 0.03, h - 0.05, body, body, EDGE_FURN);
+  // the lid reaches over the front; the handle runs along the back
+  b.box(-w / 2, w / 2, h - 0.05, h, back + 0.03, d / 2, lid, lidTop, EDGE_FAINT);
+  b.box(-w * 0.42, w * 0.42, h - 0.1, h - 0.02, back, back + 0.04, lid, lidTop);
+  if (shape === "multi") {
+    // the lid in two parts: a seam across it, and the front split for a second compartment
+    b.seg(-w / 2, h + 0.002, (back + d / 2) / 2, w / 2, h + 0.002, (back + d / 2) / 2, EDGE_GLOW);
+    b.seg(0, h * 0.25, d / 2 - 0.01, 0, h - 0.06, d / 2 - 0.01, EDGE_FAINT);
+  }
+}
+
+/**
+ * Wall switch or socket: a flat frame with one rocker or socket per gang (front at +z, the back on the wall);
+ * "outdoor" a grey box with a lid over each socket.
+ */
+function wallPlate(b: Builder, w: number, d: number, h: number, n: number, socket: boolean, outdoor: boolean): void {
+  const gw = w / n;
+  b.box(-w / 2, w / 2, 0, h, -d / 2, d / 2, outdoor ? C.metal : C.white, outdoor ? C.metal : C.whiteTop, EDGE_FURN);
+  for (let i = 0; i < n; i++) {
+    const cx = -w / 2 + gw * (i + 0.5);
+    if (i) b.seg(-w / 2 + gw * i, h * 0.06, d / 2 + 0.001, -w / 2 + gw * i, h * 0.94, d / 2 + 0.001, EDGE_FAINT);
+    if (!socket) {
+      // the rocker with its seam
+      b.box(cx - gw * 0.34, cx + gw * 0.34, h * 0.16, h * 0.84, d / 2, d / 2 + 0.006, C.white, C.whiteTop, EDGE_FAINT);
+      b.seg(cx - gw * 0.3, h * 0.5, d / 2 + 0.007, cx + gw * 0.3, h * 0.5, d / 2 + 0.007, EDGE_FAINT);
+    } else if (outdoor) {
+      // the hinged lid over the socket
+      b.box(cx - gw * 0.4, cx + gw * 0.4, h * 0.12, h * 0.9, d / 2, d / 2 + 0.018, C.metal, C.metal, EDGE_FAINT);
+      b.seg(cx - gw * 0.36, h * 0.86, d / 2 + 0.019, cx + gw * 0.36, h * 0.86, d / 2 + 0.019, EDGE_FAINT);
+    } else {
+      // the round recess with its two holes
+      const r = Math.min(gw, h) * 0.34;
+      b.lyingCyl("z", cx, d / 2 + 0.002, h / 2 - r, h / 2 + r, 0.004, r * 2, C.dark, C.dark, 14, EDGE_FAINT);
+      b.seg(cx - r * 0.45, h / 2, d / 2 + 0.0045, cx - r * 0.45 + 0.004, h / 2, d / 2 + 0.0045, EDGE_FURN);
+      b.seg(cx + r * 0.45 - 0.004, h / 2, d / 2 + 0.0045, cx + r * 0.45, h / 2, d / 2 + 0.0045, EDGE_FURN);
+    }
+  }
+}
+
+/** Wi-Fi access point: a flat disc under the ceiling (its LED ring below) or a square plate on the wall (ring in front). */
+function wifiAp(b: Builder, w: number, d: number, h: number, wall: boolean): void {
+  if (wall) {
+    b.box(-w / 2, w / 2, 0, h, -d / 2, d / 2, C.white, C.whiteTop, EDGE_FURN);
+    const r = Math.min(w, h) * 0.3;
+    for (let i = 0; i < 20; i++) {
+      const a0 = (i / 20) * Math.PI * 2;
+      const a1 = ((i + 1) / 20) * Math.PI * 2;
+      b.seg(Math.cos(a0) * r, h / 2 + Math.sin(a0) * r, d / 2 + 0.002, Math.cos(a1) * r, h / 2 + Math.sin(a1) * r, d / 2 + 0.002, EDGE_FAINT);
+    }
+    return;
+  }
+  const r = Math.min(w, d) / 2;
+  b.cyl(0, 0, r, 0, h, C.white, C.whiteTop, 24, EDGE_FURN);
+  // the mounting plate on the ceiling
+  b.cyl(0, 0, r * 0.5, h, h + 0.01, C.metal, C.metal, 12);
+}
+
+/** Water heater: a standing tank with its pipes below, or a slim flat tank on the wall (like an Ariston Velis). */
+function waterHeater(b: Builder, w: number, d: number, h: number, wall: boolean): void {
+  if (wall) {
+    b.pad(-w / 2, w / 2, 0, h, -d / 2, d / 2, C.white, C.whiteTop, 0.05, EDGE_FURN);
+    // the display near the top and the two pipes underneath
+    b.box(-w * 0.18, w * 0.18, h * 0.8, h * 0.88, d / 2, d / 2 + 0.006, C.dark);
+    for (const x of [-w * 0.2, w * 0.2]) b.cyl(x, 0, 0.012, -0.12, 0, C.metal, C.metal, 6);
+    return;
+  }
+  const r = Math.min(w, d) / 2;
+  b.cyl(0, 0, r, 0.04, h - 0.05, C.white, C.whiteTop, 20, EDGE_FURN);
+  // a domed top, the feet and the controls in front
+  b.cyl(0, 0, r * 0.85, h - 0.05, h, C.white, C.whiteTop, 20);
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2;
+    b.cyl(Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7, 0.03, 0, 0.04, C.dark, C.dark, 6);
+  }
+  b.box(-r * 0.3, r * 0.3, h * 0.55, h * 0.65, r - 0.01, r + 0.01, C.dark);
+}
+
+/** A mailbox in its local shape. */
+function mailbox(b: Builder, w: number, d: number, h: number, shape: MailboxShape): void {
+  const body = C.metal;
+  const top = shade(C.metal, 1.25).getHex();
+  const panel = shade(C.metal, 0.85).getHex();
+  if (shape === "pole") {
+    // the US mailbox on a post: a box with a round top lying lengthwise, a red flag on its side
+    const post = Math.min(0.09, w * 0.4);
+    const boxH = Math.min(0.24, h * 0.22);
+    b.box(-post / 2, post / 2, 0, h - boxH, -post / 2, post / 2, C.wood, C.woodTop, EDGE_FAINT);
+    b.box(-w / 2, w / 2, h - boxH, h - boxH * 0.45, -d / 2, d / 2, body, top, EDGE_FURN);
+    b.lyingCyl("z", 0, 0, h - boxH * 0.9, h, d, w, body, top, 14, EDGE_FURN);
+    b.box(w / 2, w / 2 + 0.015, h - boxH * 0.4, h + 0.08, -d * 0.1, -d * 0.04, 0x8a1c1c);
+    b.box(w / 2, w / 2 + 0.015, h + 0.02, h + 0.08, -d * 0.04, d * 0.12, 0x8a1c1c);
+    return;
+  }
+  if (shape === "pillar") {
+    // a post box on a pillar: the box on top, a newspaper roll below
+    const boxH = Math.min(0.4, h * 0.3);
+    b.box(-w * 0.2, w * 0.2, 0, h - boxH, -d * 0.2, d * 0.2, C.dark, C.dark, EDGE_FAINT);
+    b.lyingCyl("z", 0, 0, h - boxH - 0.2, h - boxH - 0.04, d * 0.9, 0.16, body, top, 12, EDGE_FAINT);
+    b.loft([-w / 2, w / 2, -d / 2, d / 2], [-w / 2, w / 2, -d / 2, d / 2 - 0.05], h - boxH, h, body, top, EDGE_FURN);
+    b.box(-w * 0.32, w * 0.32, h - 0.1, h - 0.08, d / 2 - 0.05, d / 2 - 0.04, C.dark);
+    return;
+  }
+  if (shape === "parcel") {
+    // a parcel box: a big door in front, a letter slot above
+    b.box(-w / 2, w / 2, 0, h, -d / 2, d / 2, body, top, EDGE_FURN);
+    b.box(-w / 2 + 0.04, w / 2 - 0.04, 0.08, h * 0.72, d / 2, d / 2 + 0.012, panel, top, EDGE_FAINT);
+    b.box(-w * 0.3, w * 0.3, h * 0.82, h * 0.86, d / 2, d / 2 + 0.01, C.dark);
+    return;
+  }
+  if (shape === "bank") {
+    // a mailbox bank: three by two boxes, each with its own slot
+    b.box(-w / 2, w / 2, 0, h, -d / 2, d / 2, body, top, EDGE_FURN);
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 2; j++) {
+        const x0 = -w / 2 + (w / 3) * i + 0.015;
+        const y0 = (h / 2) * j + 0.015;
+        b.box(x0, x0 + w / 3 - 0.03, y0, y0 + h / 2 - 0.03, d / 2, d / 2 + 0.01, panel, top, EDGE_FAINT);
+        b.box(x0 + 0.04, x0 + w / 3 - 0.07, y0 + h / 2 - 0.09, y0 + h / 2 - 0.07, d / 2 + 0.01, d / 2 + 0.014, C.dark);
+      }
+    return;
+  }
+  // a wall mailbox: a box with a slanted roof and the slot under it
+  b.box(-w / 2, w / 2, 0, h * 0.8, -d / 2, d / 2, body, top, EDGE_FURN);
+  b.loft([-w / 2, w / 2, -d / 2, d / 2 + 0.02], [-w / 2, w / 2, -d / 2, -d / 2 + 0.02], h * 0.8, h, body, top, EDGE_FURN);
+  b.box(-w * 0.36, w * 0.36, h * 0.66, h * 0.7, d / 2, d / 2 + 0.008, C.dark);
+}
+
 /** Smart side-by-side fridge without its doors (they move: see pushFridgeDoors): the body and, behind the doors, shelves. */
 function fridgeSmart(b: Builder, w: number, d: number, h: number): void {
   const front = d / 2 - FRIDGE_DOOR;
@@ -419,6 +630,173 @@ export const FRIDGE_DOOR = 0.06;
  * outer hinge: the left one carries the water dispenser, the right one the screen. An open door turns
  * red – it should not stay open for long.
  */
+/**
+ * An awning, by its kind (`variant`): "arm" a folding-arm awning over a terrace (default), "drop" a drop-arm awning
+ * at a balcony or window, "vertical" a vertical screen running down in side rails (ZIP), "pergola" a frame with posts
+ * whose fabric runs out on top, "side" a side awning pulled out sideways from a post (a privacy screen). `out` is how
+ * far it is run out (0 … 1); `base` the cassette's underside above the floor (a side awning: its top).
+ */
+export function pushAwning(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "variant" | "awning_pitch" | "awning_valance">, base: number, out: number): void {
+  const a = f.rotation * DEG;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  const t = Math.max(0, Math.min(1, out));
+  // local x along the wall, local z out from the wall (the item's front), y up
+  const P = (lx: number, y: number, lz: number): number[] => [f.x + lx * c - lz * s, y, f.z + lx * s + lz * c];
+  const quad = (p: number[], q: number[], r: number[], u: number[], col: Color) => {
+    buf.tri(p, q, r, col);
+    buf.tri(p, r, u, col);
+    buf.tri(p, r, q, col);
+    buf.tri(p, u, r, col);
+  };
+  // a square beam between two local points (arms, bars, posts, rails)
+  const beam = (pl: number[], ql: number[], r: number, col: Color) => {
+    const p = P(pl[0], pl[1], pl[2]);
+    const q = P(ql[0], ql[1], ql[2]);
+    const dx = q[0] - p[0];
+    const dy = q[1] - p[1];
+    const dz = q[2] - p[2];
+    const len = Math.hypot(dx, dy, dz) || 1;
+    const d = [dx / len, dy / len, dz / len];
+    const up = Math.abs(d[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
+    const u = [d[1] * up[2] - d[2] * up[1], d[2] * up[0] - d[0] * up[2], d[0] * up[1] - d[1] * up[0]];
+    const ul = Math.hypot(u[0], u[1], u[2]) || 1;
+    const n1 = [(u[0] / ul) * r, (u[1] / ul) * r, (u[2] / ul) * r];
+    const n2 = [d[1] * n1[2] - d[2] * n1[1], d[2] * n1[0] - d[0] * n1[2], d[0] * n1[1] - d[1] * n1[0]];
+    const K = [
+      [1, 1],
+      [-1, 1],
+      [-1, -1],
+      [1, -1],
+    ];
+    const corner = (o: number[], i: number) => [o[0] + n1[0] * K[i][0] + n2[0] * K[i][1], o[1] + n1[1] * K[i][0] + n2[1] * K[i][1], o[2] + n1[2] * K[i][0] + n2[2] * K[i][1]];
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      buf.tri(corner(p, i), corner(q, i), corner(q, j), col);
+      buf.tri(corner(p, i), corner(q, j), corner(p, j), col);
+    }
+  };
+  // a box between two local corners (cassettes)
+  const box = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, col: Color, topCol: Color) => {
+    quad(P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1), topCol);
+    quad(P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1), col);
+    quad(P(x0, y0, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1), col);
+    quad(P(x0, y0, z0), P(x0, y0, z1), P(x0, y1, z1), P(x0, y1, z0), col);
+    quad(P(x1, y0, z0), P(x1, y0, z1), P(x1, y1, z1), P(x1, y1, z0), col);
+  };
+  const body = new Color(C.body);
+  const top = new Color(C.bodyTop);
+  const accent = new Color(C.accent);
+  const stripeA = new Color(0x1d6f8a);
+  const stripeB = new Color(0x0f2f45);
+  // a striped sheet between two local edges (p0–p1 the first edge, q0–q1 the second), stripes across the first edge
+  const sheet = (p0: number[], p1: number[], q0: number[], q1: number[], n: number) => {
+    const mix = (u: number[], v: number[], k: number) => [u[0] + (v[0] - u[0]) * k, u[1] + (v[1] - u[1]) * k, u[2] + (v[2] - u[2]) * k];
+    for (let i = 0; i < n; i++) {
+      const a0 = mix(p0, p1, i / n);
+      const a1 = mix(p0, p1, (i + 1) / n);
+      const b1 = mix(q0, q1, (i + 1) / n);
+      const b0 = mix(q0, q1, i / n);
+      quad(P(a0[0], a0[1], a0[2]), P(a1[0], a1[1], a1[2]), P(b1[0], b1[1], b1[2]), P(b0[0], b0[1], b0[2]), i % 2 ? stripeA : stripeB);
+    }
+  };
+  const hw = f.w / 2;
+  const back = -f.d / 2;
+  const cas = Math.max(0.12, Math.min(0.3, f.h));
+  const stripes = Math.max(4, Math.round(f.w / 0.3));
+  const pitch = ((f.awning_pitch ?? 12) * Math.PI) / 180;
+  const valance = (y: number, z: number) => {
+    if (f.awning_valance === false) return;
+    sheet([-hw + 0.04, y, z + 0.01], [hw - 0.04, y, z + 0.01], [-hw + 0.04, y - 0.2, z + 0.01], [hw - 0.04, y - 0.2, z + 0.01], stripes);
+  };
+  const kind = f.variant ?? "arm";
+
+  if (kind === "side") {
+    // a post with the rolled fabric at the left end, the pull bar running to the right, a post to hook it into
+    const y1 = base;
+    const y0 = 0.05;
+    const z = 0;
+    const end = -hw + 0.08 + t * (f.w - 0.16);
+    box(-hw, -hw + 0.1, 0, y1 + 0.05, z - 0.05, z + 0.05, body, top);
+    box(hw - 0.06, hw, 0, y1 + 0.05, z - 0.03, z + 0.03, body, top);
+    if (t > 0.01) sheet([-hw + 0.1, y1, z], [-hw + 0.1, y0, z], [end, y1, z], [end, y0, z], Math.max(4, Math.round((y1 - y0) / 0.3)));
+    beam([end, y0, z], [end, y1, z], 0.02, accent);
+    return;
+  }
+
+  if (kind === "vertical") {
+    // a cassette across the top, side rails down to the floor, the fabric running down to its bottom bar
+    const z0 = back;
+    const z1 = Math.min(f.d / 2, back + cas);
+    box(-hw, hw, base, base + cas, z0, z1, body, top);
+    const zf = (z0 + z1) / 2;
+    for (const x of [-hw + 0.02, hw - 0.02]) beam([x, 0.02, zf], [x, base, zf], 0.02, accent);
+    const yb = base - t * Math.max(0, base - 0.04);
+    if (t > 0.01) sheet([-hw + 0.04, base, zf], [hw - 0.04, base, zf], [-hw + 0.04, yb, zf], [hw - 0.04, yb, zf], stripes);
+    beam([-hw + 0.03, yb, zf], [hw - 0.03, yb, zf], 0.025, accent);
+    return;
+  }
+
+  if (kind === "pergola") {
+    // a fixed frame: rails from the wall to the posts at the front, falling with the pitch; the fabric runs out on top
+    const zf = f.d / 2 - 0.05;
+    const yw = base + cas;
+    const yf = yw - (zf - back) * Math.tan(pitch);
+    box(-hw, hw, base, yw, back, back + cas, body, top);
+    for (const x of [-hw + 0.05, hw - 0.05]) {
+      beam([x, yw, back + cas], [x, yf, zf], 0.035, accent);
+      beam([x, 0, zf], [x, yf, zf], 0.045, body);
+    }
+    beam([-hw + 0.05, yf, zf], [hw - 0.05, yf, zf], 0.035, accent);
+    const zr = back + cas + t * (zf - back - cas);
+    const yr = yw - (zr - back) * Math.tan(pitch) + 0.04;
+    if (t > 0.01) sheet([-hw + 0.08, yw + 0.04, back + cas], [hw - 0.08, yw + 0.04, back + cas], [-hw + 0.08, yr, zr], [hw - 0.08, yr, zr], stripes);
+    beam([-hw + 0.08, yr, zr], [hw - 0.08, yr, zr], 0.025, accent);
+    return;
+  }
+
+  // the cassette on the wall (folding-arm and drop-arm awnings)
+  const z0 = back;
+  const z1 = back + cas;
+  box(-hw, hw, base, base + cas, z0, z1, body, top);
+  const mouth = [z1 - 0.02, base + cas * 0.35];
+
+  if (kind === "drop") {
+    // arms hinged on the wall below the cassette swing out and down; the fabric runs from the cassette to their bar
+    const arm = Math.max(0.3, f.d - cas);
+    // the hinge sits an arm's length under the cassette's mouth: retracted, the bar rests at the cassette
+    const pivot = [z1, mouth[1] - arm];
+    // retracted the arms point up along the wall, run out they reach the set angle below the horizontal
+    const phi = t * (Math.PI / 2 + pitch);
+    const bar = [pivot[0] + Math.sin(phi) * arm, pivot[1] + Math.cos(phi) * arm];
+    for (const x of [-hw + 0.08, hw - 0.08]) beam([x, pivot[1], pivot[0]], [x, bar[1], bar[0]], 0.018, accent);
+    if (t > 0.01) sheet([-hw + 0.04, mouth[1], mouth[0]], [hw - 0.04, mouth[1], mouth[0]], [-hw + 0.04, bar[1], bar[0]], [hw - 0.04, bar[1], bar[0]], stripes);
+    beam([-hw + 0.02, bar[1], bar[0]], [hw - 0.02, bar[1], bar[0]], 0.03, accent);
+    if (t > 0.05) valance(bar[1], bar[0]);
+    return;
+  }
+
+  // folding-arm awning: the fabric down its fall to the front bar, two folding arms bending out sideways
+  const reach = Math.max(0, f.d - cas) * t;
+  const end = [mouth[0] + reach, mouth[1] - reach * Math.tan(pitch)];
+  if (reach > 0.01) {
+    sheet([-hw + 0.04, mouth[1], mouth[0]], [hw - 0.04, mouth[1], mouth[0]], [-hw + 0.04, end[1], end[0]], [hw - 0.04, end[1], end[0]], stripes);
+    const arm = Math.max(0.3, (f.d - cas) / 2 + 0.05);
+    for (const side of [-1, 1]) {
+      const x = side * (hw - 0.12);
+      const sh = [x, base + 0.02, z1 - 0.04];
+      const hand = [x, end[1] - 0.02, end[0]];
+      const span = Math.hypot(hand[2] - sh[2], hand[1] - sh[1]);
+      const bend = Math.sqrt(Math.max(0, arm * arm - (span / 2) ** 2));
+      const elbow = [x - side * Math.min(bend, hw - 0.15), (sh[1] + hand[1]) / 2, (sh[2] + hand[2]) / 2];
+      beam(sh, elbow, 0.018, accent);
+      beam(elbow, hand, 0.018, accent);
+    }
+  }
+  beam([-hw + 0.02, end[1], end[0]], [hw - 0.02, end[1], end[0]], 0.03, accent);
+  if (reach > 0.05) valance(end[1], end[0]);
+}
+
 export function pushFridgeDoors(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, left: number, right: number): void {
   const p0 = buf.p.length;
   pushFridgeDoorsUnflipped(buf, f, base, left, right);
@@ -1129,10 +1507,11 @@ function contactShadow(shadow: GeoBuffer, tf: Tf, w: number, d: number, strength
   if (tfMirrors(tf)) flipWinding(shadow, s0);
 }
 
-export function pushFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base = 0): void {
+/** `still`: a picture of the item (a preview), so a pack's robot vacuum keeps its robot instead of driving it (#645). */
+export function pushFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base = 0, still = false): void {
   // a mirrored item needs no rewinding here: boxes, lofts and upright cylinders wind themselves (ccw),
   // lying cylinders and the contact shadow rewind themselves when the transform mirrors (#159)
-  pushUpright(buf, lines, shadow, f, base);
+  pushUpright(buf, lines, shadow, f, base, still);
 }
 
 /** Swap the second and third vertex of every triangle from `from` on (positions, colours, folds, uvs, tiles). */
@@ -1157,12 +1536,12 @@ export function flipWinding(buf: GeoBuffer, from: number): void {
   }
 }
 
-function pushUpright(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base: number): void {
+function pushUpright(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base: number, still = false): void {
   // pack items place their parts at `base` themselves; built-in models are drawn on the floor and
   // lifted as a whole (a dryer on the washer, a shelf on the wall), without a shadow on the floor
   // the mount height is absolute: a wall cabinet drawn at 1.45 m moves by the difference (up or down)
   const lift = packItem(f.type) ? 0 : base - builtinBase(f);
-  if (packItem(f.type) || Math.abs(lift) < 0.001) return buildFurniture(buf, lines, shadow, f, base);
+  if (packItem(f.type) || Math.abs(lift) < 0.001) return buildFurniture(buf, lines, shadow, f, base, still);
   const p0 = buf.p.length;
   const l0 = lines.p.length;
   buildFurniture(buf, lines, base < 0.05 ? shadow : new GeoBuffer(), f, 0);
@@ -1170,7 +1549,7 @@ function pushUpright(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Fu
   for (let i = l0 + 1; i < lines.p.length; i += 3) lines.p[i] += lift;
 }
 
-function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base: number): void {
+function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base: number, still = false): void {
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
@@ -1225,6 +1604,47 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
     case "fridge_smart":
       fridgeSmart(b, w, d, h);
       break;
+    case "waste_bin": {
+      const c0 = buf.c.length;
+      wasteBin(b, w, d, h, binShape(f), binColors(f, householdCountry()));
+      // the light looks keep only bright saturated colours: the shading towards the floor made the lower half of a
+      // bin fall back to the look's grey (#609), so its coloured parts keep their brightness all the way down
+      if (lightLook) keepBright(buf.c, c0);
+      break;
+    }
+    case "mailbox": {
+      // like the other built-in wall models it is drawn at its own height (a wall mailbox at 1 m, a bank at 0.75 m)
+      const p0 = buf.p.length;
+      const l0 = lines.p.length;
+      mailbox(b, w, d, h, mailboxShape(f));
+      const lift = builtinBase(f);
+      for (let i = p0 + 1; i < buf.p.length; i += 3) buf.p[i] += lift;
+      for (let i = l0 + 1; i < lines.p.length; i += 3) lines.p[i] += lift;
+      if (lift > 0) return; // hangs on the wall: no shadow on the floor
+      break;
+    }
+    case "wifi_ap":
+      // under the ceiling or on the wall: lifted by its mount height, no shadow
+      wifiAp(b, w, d, h, f.variant === "wall");
+      return;
+    case "water_heater":
+      waterHeater(b, w, d, h, f.variant === "wall");
+      if (f.variant === "wall") return;
+      break;
+    case "wall_switch":
+    case "wall_socket": {
+      // drawn at its own height like the other built-in wall models; never a shadow on the floor
+      const p0 = buf.p.length;
+      const l0 = lines.p.length;
+      wallPlate(b, w, d, h, gangsOf(f).length, f.type === "wall_socket", f.variant === "outdoor");
+      const lift = builtinBase(f);
+      for (let i = p0 + 1; i < buf.p.length; i += 3) buf.p[i] += lift;
+      for (let i = l0 + 1; i < lines.p.length; i += 3) lines.p[i] += lift;
+      return;
+    }
+    case "awning":
+      // drawn with its moving fabric and arms by pushAwning (it runs in and out with its cover)
+      return;
     case "stove":
       stove(b, w, d, h);
       break;
@@ -1376,13 +1796,25 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
     default: {
       const item = packItem(f.type);
       if (item) {
-        packModel(b, item, w, d, h, base, null);
+        // a motorised curtain's fabric or a roll-down screen's cloth is drawn with its cover's state (pushPackMotion);
+        // a pack's robot vacuum drives around as the viewer's robot (pushPackRobot), only its dock stays here (#645)
+        const motion = packMotion(f.type);
+        const skip = motion ? (p: PackPart) => packMovingPart(motion, p) : isRobotVacuum(f.type) && !still ? packRobotPart : null;
+        packModel(b, item, w, d, h, base, null, null, skip);
         // items on furniture, walls or ceilings cast no shadow on the floor
         if (base > 0.05) return;
       } else b.box(-w / 2, w / 2, 0, h, -d / 2, d / 2, C.body, C.bodyTop, EDGE_FURN);
     }
   }
   contactShadow(shadow, tf, w, d, f.type === "plant" ? 0.35 : 0.5);
+}
+
+/**
+ * A pack item with parts in a colour of their own ("#rrggbb", a pumpkin's orange): the light looks keep such colours
+ * only while bright and strong enough, so these parts are drawn anew on a look change (#609).
+ */
+export function hasFixedColors(type: string): boolean {
+  return !!packItem(type)?.parts.some((p) => p.color?.startsWith("#") || p.top?.startsWith("#"));
 }
 
 /** Colour of a pack part: a palette role (so packs follow the look) or "#rrggbb". */
@@ -1394,9 +1826,20 @@ function packColor(value: string | undefined, top: boolean): number | null {
 }
 
 /** Model of a pack item: its parts scaled to the item's size; glowing parts take `glow` (a lit lamp). */
-function packModel(b: Builder, item: PackItem, w: number, d: number, h: number, base: number, glow: number | null, only: ((p: PackItem["parts"][number]) => boolean) | null = null): void {
+function packModel(
+  b: Builder,
+  item: PackItem,
+  w: number,
+  d: number,
+  h: number,
+  base: number,
+  glow: number | null,
+  only: ((p: PackItem["parts"][number]) => boolean) | null = null,
+  skip: ((p: PackItem["parts"][number]) => boolean) | null = null,
+): void {
   const onlyGlow = !!only;
-  for (const q of item.parts) {
+  for (const q of fitParts(item, w, d, h)) {
+    if (skip?.(q)) continue;
     // only some parts (the glowing ones of a speaker, a car's windows), a hair larger so they cover the item's own
     if (only && !only(q)) continue;
     const p = onlyGlow ? { ...q, glow: true, w: q.w + 0.006 / w, d: q.d + 0.006 / d, y: Math.max(0, q.y - 0.002 / h), h: q.h + 0.004 / h } : q;
@@ -1406,6 +1849,7 @@ function packModel(b: Builder, item: PackItem, w: number, d: number, h: number, 
     const top = lit ? glow : (packColor(p.top, false) ?? packColor(p.color, true) ?? shade(side, 1.25).getHex());
     const y0 = base + p.y * h;
     const y1 = base + Math.min(h, (p.y + p.h) * h);
+    const c0 = b.colors.length;
     // "glow" lines are as bright as the wall lines, so a pack item can be drawn like the walls
     const edges = p.edges === "glow" ? EDGE_TOP : p.edges === "faint" ? EDGE_FAINT : p.edges ? EDGE_FURN : null;
     // a turned part draws through a builder whose coordinates turn around the part's centre
@@ -1420,6 +1864,10 @@ function packModel(b: Builder, item: PackItem, w: number, d: number, h: number, 
       const td = p.td ?? p.d;
       bb.loft([(p.x - p.w / 2) * w, (p.x + p.w / 2) * w, (p.z - p.d / 2) * d, (p.z + p.d / 2) * d], [(tx - tw / 2) * w, (tx + tw / 2) * w, (tz - td / 2) * d, (tz + td / 2) * d], y0, y1, side, top, edges);
     } else bb.box((p.x - p.w / 2) * w, (p.x + p.w / 2) * w, y0, y1, (p.z - p.d / 2) * d, (p.z + p.d / 2) * d, side, top, edges);
+    // a part in a colour of its own keeps it in the light looks down to the ground, like a waste bin (#609): the
+    // shading towards the floor would push its lower half under the looks' signal-colour threshold (palette roles
+    // follow the look and stay as they are)
+    if (lightLook && !lit && !onlyGlow && (p.color?.startsWith("#") || p.top?.startsWith("#"))) keepBright(b.colors, c0);
   }
 }
 
@@ -1451,6 +1899,26 @@ export function pushCameraModel(buf: GeoBuffer, model: "camera_wall" | "camera_c
   b.box(-0.006, 0.006, y + 0.075, y + 0.085, 0.085, 0.09, 0xff3b4f, 0xff3b4f);
 }
 
+/**
+ * The robot of a pack's robot vacuum (the parts in front of its dock) as a model of its own, centred on the robot
+ * and standing on y = 0, facing +z – the viewer drives it around (#645). Returns the robot's radius and height, for
+ * the status light on top.
+ */
+export function pushPackRobot(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number): { radius: number; top: number } {
+  const cz = packRobotCentre(item) * d;
+  const b = new Builder(buf, new LineBuffer(), (x, z) => [x, z - cz]);
+  packModel(b, item, Math.max(0.05, w), Math.max(0.05, d), Math.max(0.005, h), 0, null, packRobotPart);
+  let radius = 0;
+  let top = 0;
+  for (const p of fitParts(item, w, d, h)) {
+    if (!packRobotPart(p)) continue;
+    const r = Math.min(p.w * w, p.d * d) / 2;
+    if (p.shape === "cyl" && r > radius) radius = r;
+    top = Math.max(top, Math.min(h, (p.y + p.h) * h));
+  }
+  return { radius: radius || 0.17, top: top || 0.09 };
+}
+
 /** The glowing parts of a pack item that is no lamp (a smart speaker's light ring) in `color`: for the screen layer. */
 export function pushPackGlow(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, color: number, pick: (p: PackItem["parts"][number]) => boolean = (p) => !!p.glow): void {
   const a = f.rotation * DEG;
@@ -1461,7 +1929,80 @@ export function pushPackGlow(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
   packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, color, pick);
 }
 
+/**
+ * The moving parts of a motorised curtain or roll-down screen from a pack (#511), `open` 0 … 1 as its cover reports
+ * (open = curtain drawn aside, screen rolled up). The curtain's panels gather towards both ends; the screen's cloth
+ * and bar hang from the roller as far as it is down.
+ */
+export function pushPackMotion(buf: GeoBuffer, item: PackItem, kind: PackMotion, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror" | "variant">, base: number, open: number): void {
+  const parts = packMotionParts(item, kind, open, f.variant === "left" || f.variant === "right" ? f.variant : "both");
+  const a = f.rotation * DEG;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  const mx = f.mirror ? -1 : 1;
+  const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
+  packModel(new Builder(buf, new LineBuffer(), tf), { ...item, parts }, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, null);
+}
+
+/** The moving parts of such an item where they are at `open` (in the item's fractions of its size). */
+export function packMotionParts(item: PackItem, kind: PackMotion, open: number, side: "both" | "left" | "right" = "both"): PackItem["parts"] {
+  const t = Math.min(1, Math.max(0, open));
+  const moving = item.parts.filter((p) => packMovingPart(kind, p));
+  let parts: PackItem["parts"];
+  if (kind === "curtain") {
+    // each panel keeps its width and moves outwards: fully open, the panels bunch up in the outer fifth of each half
+    parts = moving.map((p) => {
+      // x is the part's centre as a share of the width, from -0.5 (left end) to 0.5 (right end, seen from the front);
+      // a curtain opening to one side gathers all its panels at that end (#511)
+      const edge = side === "left" ? -0.5 : side === "right" ? 0.5 : Math.sign(p.x || 1) * 0.5;
+      return { ...p, x: edge - (edge - p.x) * (1 - 0.8 * t) };
+    });
+  } else {
+    // the cloth hangs from its top edge (under the roller) and is as long as the screen is down
+    const top = Math.max(...moving.map((p) => p.y + p.h));
+    const down = Math.max(0.02, 1 - t);
+    parts = moving.map((p) => ({ ...p, y: top - (top - p.y) * down, h: p.h * down }));
+  }
+  return parts;
+}
+
 /** A pack lamp into the lamp buffer: glowing parts in the light's colour (`glow`), or dark when off. */
+/**
+ * Where a pack lamp's light comes from (#680): the centre of its glowing parts – each weighed by its size, so the
+ * glass of a lantern counts more than a small indicator – turned and mirrored like the item, as plan x and z and the
+ * height y. Null for an item without glowing parts.
+ */
+export function packGlowCentre(item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number): [number, number, number] | null {
+  const w = Math.max(0.05, f.w);
+  const d = Math.max(0.05, f.d);
+  const h = Math.max(0.005, f.h);
+  let weight = 0;
+  let sx = 0;
+  let sy = 0;
+  let sz = 0;
+  for (const p of fitParts(item, w, d, h)) {
+    if (!p.glow) continue;
+    // a loft's centre lies between its bottom and its top rectangle; a turned part turns around its own centre
+    const x = ((p.x + (p.shape === "loft" ? (p.tx ?? p.x) : p.x)) / 2) * w;
+    const z = ((p.z + (p.shape === "loft" ? (p.tz ?? p.z) : p.z)) / 2) * d;
+    const y0 = p.y * h;
+    const y1 = Math.min(h, (p.y + p.h) * h);
+    const k = Math.max(1e-6, p.w * w * p.d * d * Math.max(0, y1 - y0));
+    weight += k;
+    sx += x * k;
+    sy += ((y0 + y1) / 2) * k;
+    sz += z * k;
+  }
+  if (!weight) return null;
+  const x = sx / weight;
+  const z = sz / weight;
+  const a = f.rotation * DEG;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  const mx = f.mirror ? -1 : 1;
+  return [f.x + mx * x * c - z * s, base + sy / weight, f.z + mx * x * s + z * c];
+}
+
 export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, glow: number): void {
   const a = f.rotation * DEG;
   const c = Math.cos(a);

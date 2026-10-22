@@ -127,27 +127,26 @@ test("a power outage: grid sensors off, helpers on, a UPS on battery, a low main
   assert.equal(alertText(hass, b, alerts[0]), "Stromausfall: Netz");
 });
 
-test("Pool Pro warns when pH or chlorine are far off or the water freezes while the pump rests", async () => {
+test("Haushalt Pro warns when a fridge door stands open too long", async () => {
   const { setPacks } = await import("./packs.ts");
-  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  const open = new Date(Date.now() - 5 * 60_000).toISOString();
   const hass = {
     language: "de",
-    states: {
-      "sensor.pool_ph": st("sensor.pool_ph", "8.3"),
-      "sensor.pool_redox": st("sensor.pool_redox", "700", { unit_of_measurement: "mV" }),
-      "sensor.pool_wasser": st("sensor.pool_wasser", "2", { device_class: "temperature", unit_of_measurement: "°C" }),
-      "switch.pool_pumpe": st("switch.pool_pumpe", "off"),
-    },
+    states: { "binary_sensor.kuehlschrank": { entity_id: "binary_sensor.kuehlschrank", state: "on", attributes: { friendly_name: "Kühlschranktür" }, last_changed: open } },
     entities: {},
   } as unknown as HomeAssistant;
   const b = emptyBuilding();
-  b.floors = [{ ...newFloor("eg", "EG", 0), outdoor: [{ id: "p1", type: "pool", points: [[0, 0], [4, 0], [4, 3], [0, 3]], pool: {} }] }];
-  // without the add-on no pool warnings
+  const floor = newFloor("eg", "EG", 0);
+  floor.rooms = [{ id: "k", name: "Küche", area_id: null, points: [[0, 0], [4, 0], [4, 3], [0, 3]], floor_material: "tiles" }];
+  floor.furniture = [{ id: "f1", type: "fridge", x: 1, z: 1, rotation: 0, w: 0.6, d: 0.65, h: 1.8, variant: null, door_left: "binary_sensor.kuehlschrank" }];
+  b.floors = [floor];
   setPacks([]);
   assert.deepEqual(findAlerts(hass, b, alertSources(hass, b), new Map()), []);
-  setPacks([{ id: "pro", name: "Pro", items: [], features: ["pool"] } as never]);
-  const alerts = findAlerts(hass, b, alertSources(hass, b), new Map());
-  assert.deepEqual(alerts.map((a) => a.kind), ["pool_ph", "pool_frost"]);
-  assert.equal(alertText(hass, b, alerts[0]), "Pool: pH 8.3");
+  setPacks([{ id: "pro", name: "Pro", items: [], features: ["household"] } as never]);
+  const sources = alertSources(hass, b);
+  assert.ok(alertEntities(sources).includes("binary_sensor.kuehlschrank"));
+  const alerts = findAlerts(hass, b, sources, new Map());
+  assert.deepEqual(alerts.map((a) => [a.kind, a.roomId]), [["fridge_door", "k"]]);
+  assert.equal(alertText(hass, b, alerts[0]), "Küche · Kühlschrank offen: Kühlschranktür");
   setPacks([]);
 });
