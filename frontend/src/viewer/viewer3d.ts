@@ -737,6 +737,12 @@ export class FloorplanViewer {
     this.skyDisc.renderOrder = -1;
     this.scene.add(this.rain, this.snow, this.skyDisc);
     this.controls = this.makeControls();
+    // a mouse's right-click is "go back" (room -> floor -> house), the same as the Back button or
+    // Escape – a left/tap click on a room always zooms into it now, instead of toggling back out
+    this.renderer.domElement.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      this.options.onBack?.();
+    });
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
     document.addEventListener("visibilitychange", this.onVisibility);

@@ -259,7 +259,8 @@ export class Floorplan3dPanel extends LitElement {
       return;
     }
     if (!roomId) return;
-    this._roomId = roomId === this._roomId ? null : roomId;
+    // a tap always zooms in now; right-click (or Back/Escape) is what zooms back out
+    this._roomId = roomId;
   }
 
   private setWallMode(mode: WallMode): void {

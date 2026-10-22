@@ -410,7 +410,8 @@ clearTimeout(this.cleanTimer);
                   return;
                 }
                 if (!e.detail.roomId) return;
-                this._roomId = e.detail.roomId === this._roomId ? null : e.detail.roomId;
+                // a tap always zooms in now; right-click (or Back/Escape) is what zooms back out
+                this._roomId = e.detail.roomId;
               }}
               @floor-tap=${(e: CustomEvent<{ floorId: string | null }>) => {
                 this._floorId = e.detail.floorId;
