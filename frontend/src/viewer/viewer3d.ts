@@ -738,10 +738,22 @@ export class FloorplanViewer {
     this.scene.add(this.rain, this.snow, this.skyDisc);
     this.controls = this.makeControls();
     // a mouse's right-click is "go back" (room -> floor -> house), the same as the Back button or
-    // Escape – a left/tap click on a room always zooms into it now, instead of toggling back out
+    // Escape – a left/tap click on a room always zooms into it now, instead of toggling back out.
+    // The right button also pans (OrbitControls), so only a right press that barely moved counts as
+    // a "click" here – a right-drag just pans, as before, with no extra zoom-out on release.
+    let rightDownAt: { x: number; y: number } | null = null;
+    this.renderer.domElement.addEventListener("pointerdown", (e) => {
+      if (e.button === 2) rightDownAt = { x: e.clientX, y: e.clientY };
+    });
     this.renderer.domElement.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      this.options.onBack?.();
+      const start = rightDownAt;
+      rightDownAt = null;
+      // no tracked right-button press (a tablet's long-press fires this too, with no button info) –
+      // that is a hold gesture elsewhere, not a right-click, so it does nothing here
+      if (!start) return;
+      const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6;
+      if (!moved) this.options.onBack?.();
     });
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
