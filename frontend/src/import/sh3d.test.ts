@@ -68,7 +68,7 @@ test("a Sweet Home 3D house: floors, joined rooms, doors and windows on their ed
   assert.equal(front.type, "door");
   const room = (id: string) => eg.rooms.find((r) => r.id === id)!;
   const edgeMid = (o: (typeof eg.openings)[number]) => {
-    const r = room(o.room_id);
+    const r = room(o.room_id!);
     const a = r.points[o.edge];
     const c = r.points[(o.edge + 1) % r.points.length];
     const len = Math.hypot(c[0] - a[0], c[1] - a[1]);

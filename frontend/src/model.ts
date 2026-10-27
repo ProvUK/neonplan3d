@@ -63,7 +63,7 @@ export interface Room {
   wall_splits?: (number[] | null)[];
 }
 
-export type OpeningType = "door" | "window" | "garage";
+export type OpeningType = "door" | "window" | "garage" | "gate";
 
 /** Where a window gets its board / sill: automatic, none, only inside or only outside (#655). */
 export type SillBoard = "auto" | "none" | "inside" | "outside";
@@ -74,8 +74,12 @@ export type EntityRef = string | null;
 
 export interface Opening {
   id: string;
-  room_id: string;
-  /** Room edge the opening sits on (points[edge] -> points[edge + 1]); 0 in a free wall. */
+  /** The room this opening's wall belongs to (with `wall`, the room that free wall stands in); null
+   * for a gate, which has `outdoor_id` set instead. */
+  room_id: string | null;
+  /** A gate cut into an outdoor fence's line instead of a room wall: the outdoor area's id. */
+  outdoor_id?: string | null;
+  /** Room (or outdoor area) edge the opening sits on (points[edge] -> points[edge + 1]); 0 in a free wall. */
   edge: number;
   /** Distance of the opening's centre from points[edge], or from the free wall's start (metres). */
   offset: number;
@@ -1661,6 +1665,7 @@ export const OPENING_DEFAULTS = {
   door: { width: 0.9, sill: 0, height: 2.05 },
   window: { width: 1.2, sill: 0.9, height: 1.3 },
   garage: { width: 2.5, sill: 0, height: 2.1 },
+  gate: { width: 1.0, sill: 0, height: 1.0 },
 } as const;
 
 /** Kinds of openings offered when placing one; a terrace door is a window down to the floor. */
@@ -1736,12 +1741,14 @@ export const OPENING_PRESETS = {
   terrace_double: { type: "window", leaves: 2, width: 1.8, sill: 0, height: 2.1 },
   garage: { type: "garage", leaves: 1, width: 2.5, sill: 0, height: 2.1 },
   glass_wall: { type: "window", leaves: 1, width: 2.0, sill: 0, height: 2.4, style: "glass_wall" },
+  gate: { type: "gate", leaves: 1, width: 1.0, sill: 0, height: 1.0 },
 } as const satisfies Record<string, { type: OpeningType; leaves: 1 | 2; width: number; sill: number; height: number; style?: OpeningStyle }>;
 
 export type OpeningPreset = keyof typeof OPENING_PRESETS;
 
 /** The preset an opening matches (by type, leaves, style and whether it reaches the floor). */
 export function openingPreset(o: Pick<Opening, "type" | "leaves" | "sill" | "style">): OpeningPreset {
+  if (o.type === "gate") return "gate";
   if (o.type === "garage") return "garage";
   if (o.type === "window" && o.style === "glass_wall") return "glass_wall";
   const two = o.leaves === 2;

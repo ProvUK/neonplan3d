@@ -51,6 +51,7 @@ export class Fp3dRoomPanel extends LitElement {
     readOnly: { type: Boolean },
     _showAll: { state: true },
     _tick: { state: true },
+    _collapsed: { state: true },
   };
 
   declare hass: HomeAssistant;
@@ -67,6 +68,9 @@ export class Fp3dRoomPanel extends LitElement {
   private declare _showAll: boolean;
   /** Bumped every few seconds while the panel is open, so camera snapshots refresh. */
   private declare _tick: number;
+  /** Minimised to just its header (a mobile sheet otherwise covers much of the 3D view, #712). */
+  private declare _collapsed: boolean;
+  private lastRoomId: string | null = null;
   private cameraTimer: ReturnType<typeof setInterval> | undefined;
   private memo: { entities: HomeAssistant["entities"]; floor: Floor | null; building: Building | null; room: Room; shown: string[]; more: string[] } | null = null;
   private hasCameras = false;
@@ -79,6 +83,15 @@ export class Fp3dRoomPanel extends LitElement {
     this.readOnly = false;
     this._showAll = false;
     this._tick = 0;
+    this._collapsed = false;
+  }
+
+  /** A newly opened room always starts expanded, even if the last one was left minimised. */
+  protected willUpdate(): void {
+    if (this.room?.id !== this.lastRoomId) {
+      this.lastRoomId = this.room?.id ?? null;
+      this._collapsed = false;
+    }
   }
 
   connectedCallback(): void {
@@ -168,18 +181,28 @@ export class Fp3dRoomPanel extends LitElement {
     const scenes = by(["scene", "script"]);
     const facts = this.facts(climates);
     const lightsOn = lights.filter((l) => l.state === "on");
-    return html`<section class="fp3d-rp ${this.readOnly ? "fp3d-rp-ro" : ""}" aria-label=${room.name}>
+    return html`<section class="fp3d-rp ${this.readOnly ? "fp3d-rp-ro" : ""} ${this._collapsed ? "fp3d-rp-collapsed" : ""}" aria-label=${room.name}>
       <header class="fp3d-rp-head">
         <div>
           <h2>${room.name}</h2>
           ${facts.length ? html`<p class="fp3d-rp-facts">${facts.join(" · ")}</p>` : nothing}
           ${this.readOnly ? html`<p class="fp3d-rp-facts fp3d-rp-ro-note">⏪ ${this.t("tt_readonly")}</p>` : nothing}
         </div>
+        <button
+          class="fp3d-rp-min"
+          aria-label=${this.t(this._collapsed ? "panel_expand" : "panel_minimise")}
+          aria-expanded=${this._collapsed ? "false" : "true"}
+          @click=${() => (this._collapsed = !this._collapsed)}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class=${this._collapsed ? "fp3d-rp-min-flip" : ""}>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
         <button class="fp3d-rp-close" aria-label=${this.t("close")} @click=${() => this.fire("close")}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       </header>
-      <div class="fp3d-rp-body">
+      <div class="fp3d-rp-body" ?hidden=${this._collapsed}>
         ${!room.area_id
           ? html`<p class="fp3d-rp-note">${this.t("panel_no_area")}</p>`
           : !ids.length
@@ -563,7 +586,8 @@ export class Fp3dRoomPanel extends LitElement {
         font-variant-numeric: tabular-nums;
       }
       @media (pointer: coarse) {
-        .fp3d-rp-close {
+        .fp3d-rp-close,
+        .fp3d-rp-min {
           width: 40px;
           height: 40px;
         }
@@ -575,7 +599,8 @@ export class Fp3dRoomPanel extends LitElement {
           min-height: 36px;
         }
       }
-      .fp3d-rp-close {
+      .fp3d-rp-close,
+      .fp3d-rp-min {
         display: grid;
         place-items: center;
         width: 34px;
@@ -585,6 +610,16 @@ export class Fp3dRoomPanel extends LitElement {
         background: rgba(255, 255, 255, 0.06);
         color: var(--fp3d-text);
         cursor: pointer;
+        flex-shrink: 0;
+      }
+      .fp3d-rp-min-flip {
+        transform: rotate(180deg);
+      }
+      .fp3d-rp-collapsed .fp3d-rp-body {
+        display: none;
+      }
+      .fp3d-rp-collapsed {
+        max-height: none;
       }
       .fp3d-rp-body {
         overflow-y: auto;

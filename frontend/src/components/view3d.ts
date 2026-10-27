@@ -4351,13 +4351,13 @@ export class Fp3dView3d extends LitElement {
       for (const o of floor.openings) {
         const e = this.openingLinks?.get(o.id);
         if (!e) continue;
-        const kind = o.type === "garage" ? "garage" : o.type === "door" ? "door" : "window";
+        const kind = o.type === "garage" ? "garage" : o.type === "door" || o.type === "gate" ? "door" : "window";
         // open as the 3D view shows it: the sash or door turned, a garage door up; tilted on its own
         const s = openingState(hass, e, o.type);
         const open = s.open > 0.02 || s.open2 > 0.02 || (o.type === "garage" && (s.cover ?? 0) > 0.02);
         const tilted = !open && (s.tilt > 0.02 || s.tilt2 > 0.02);
         for (const id of [e.contact, e.contact2, e.cover, e.tilt, e.tilt2]) {
-          if (id && id !== "none") out.push({ id: o.id, entity: id, kind, name: t(`opening_${o.type}`), room: rooms.get(o.room_id) ?? "", floorId: floor.id, roomId: o.room_id, open, tilted });
+          if (id && id !== "none") out.push({ id: o.id, entity: id, kind, name: t(`opening_${o.type}`), room: (o.room_id && rooms.get(o.room_id)) ?? "", floorId: floor.id, roomId: o.room_id, open, tilted });
         }
       }
     }

@@ -12,7 +12,7 @@
 
 import { Color, type BufferGeometry } from "three";
 import type { Floor, Opening, Room, SolarField, Vec2 } from "../model.ts";
-import { furnitureFootprint, GANG_TYPES, isLamp, pointInPolygon, polygonArea, STAIR_TYPES } from "../model.ts";
+import { areaGround, furnitureFootprint, GANG_TYPES, groundDrop, isLamp, outdoorStanding, OUTDOOR_TOP, pointInPolygon, polygonArea, signedArea, STAIR_TYPES } from "../model.ts";
 import { generateWalls, locateOpening, openingHost, placeWallPlate, slopeTop, wallContinuation, type Wall } from "../geometry/walls.ts";
 import { clipConvex, isConvex } from "../geometry/area.ts";
 import { holeInRoom, insetHole, mergeHoles } from "../geometry/holes.ts";
@@ -291,6 +291,40 @@ export function buildFloorGeometry(
       if (!more) spans.set(w, (more = []));
       more.push({ s0: c0, s1: c1, sill, top, info, cont: true });
     }
+  }
+
+  // a gate: a cut into an outdoor fence's line instead of a room wall – the same OpeningInfo shape,
+  // with the fence's own edge standing in for the wall (a thin, symmetric "thickness" either side)
+  for (const o of floor.openings) {
+    if (!o.outdoor_id) continue;
+    const area = (floor.outdoor ?? []).find((a) => a.id === o.outdoor_id);
+    if (!area || area.points.length < 3) continue;
+    const poly = signedArea(area.points) >= 0 ? area.points : [...area.points].reverse();
+    const p = poly[o.edge % poly.length];
+    const q = poly[(o.edge + 1) % poly.length];
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    if (len < 1e-6) continue;
+    const ax: Vec2 = [(q[0] - p[0]) / len, (q[1] - p[1]) / len];
+    const width = Math.min(o.width, len);
+    const s0 = Math.max(0, Math.min(len - width, o.offset - width / 2));
+    const start: Vec2 = [p[0] + ax[0] * s0, p[1] + ax[1] * s0];
+    const g = areaGround(floor, area) - groundDrop(floor, area, start[0], start[1]);
+    const fenceHeight = outdoorStanding(area.type) && area.height ? area.height : OUTDOOR_TOP[area.type];
+    const info: OpeningInfo = {
+      opening: o,
+      bucket: ALWAYS,
+      start,
+      axis: ax,
+      width,
+      toRoom: [ax[1], -ax[0]],
+      faceRoom: 0.02,
+      faceOut: 0.02,
+      sill: g,
+      top: g + Math.min(o.height, fenceHeight + 0.3),
+      hingeAtStart: o.hinge === "left",
+      exterior: true,
+    };
+    openings.push(info);
   }
 
   // ---------------------------------------------------------------- wall solids

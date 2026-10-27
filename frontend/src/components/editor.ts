@@ -4575,6 +4575,22 @@ export class Fp3dEditor extends LitElement {
         if (d < SNAP_PX * 2.2 && (!best || score < best.d)) best = { room, edge: i, d: score };
       }
     }
+    // a fence's own line: tapping it always places a gate (a cut into the fence, like a door in a
+    // wall), whichever opening preset is currently active for room walls
+    let bestGate: { area: OutdoorArea; edge: number; d: number; poly: Vec2[] } | null = null;
+    for (const area of floor.outdoor ?? []) {
+      if (area.type !== "fence" || area.points.length < 3) continue;
+      const poly = signedArea(area.points) >= 0 ? area.points : [...area.points].reverse();
+      for (let i = 0; i < poly.length; i++) {
+        const [ax, ay] = this.toScreen(poly[i]);
+        const [bx, by] = this.toScreen(poly[(i + 1) % poly.length]);
+        const l2 = (bx - ax) ** 2 + (by - ay) ** 2 || 1;
+        const t = Math.min(1, Math.max(0, ((screen[0] - ax) * (bx - ax) + (screen[1] - ay) * (by - ay)) / l2));
+        const d = Math.hypot(screen[0] - ax - (bx - ax) * t, screen[1] - ay - (by - ay) * t);
+        if (d < SNAP_PX * 2.2 && (!bestGate || d < bestGate.d)) bestGate = { area, edge: i, d, poly };
+      }
+    }
+    if (bestGate && (!best || bestGate.d < best.d)) return this.placeGate(bestGate, screen);
     if (!best) return false;
     const { room, edge, wall } = best;
     const a = room.points[edge];
@@ -4603,6 +4619,40 @@ export class Fp3dEditor extends LitElement {
     };
     this.change((_, f) => f.openings.push(opening));
     // the tool stays: six doors and windows in a row without going back to the menu (Esc or "Select" ends it)
+    this.selectItem("opening", opening.id);
+    return true;
+  }
+
+  /** A gate cut into a fence's line, the outdoor equivalent of a door cut into a room wall. */
+  private placeGate(hit: { area: OutdoorArea; edge: number; poly: Vec2[] }, screen: [number, number]): boolean {
+    const { area, edge, poly } = hit;
+    const a = poly[edge];
+    const b = poly[(edge + 1) % poly.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const defaults = OPENING_PRESETS.gate;
+    const width = round(Math.min(defaults.width, Math.max(0.3, len - 0.1)));
+    const world = this.toWorld(...screen);
+    const t = Math.max(0, Math.min(1, ((world[0] - a[0]) * (b[0] - a[0]) + (world[1] - a[1]) * (b[1] - a[1])) / (len * len)));
+    const offset = round(Math.min(len - width / 2, Math.max(width / 2, t * len)));
+    const opening: Opening = {
+      id: uid("opening"),
+      room_id: null,
+      outdoor_id: area.id,
+      edge,
+      offset,
+      width,
+      type: "gate",
+      sill: defaults.sill,
+      height: defaults.height,
+      hinge: "left",
+      leaves: 1,
+      swing: "in",
+      cover: null,
+      contact: null,
+      contact2: null,
+      tilt: null,
+    };
+    this.change((_, f) => f.openings.push(opening));
     this.selectItem("opening", opening.id);
     return true;
   }
@@ -5670,7 +5720,7 @@ export class Fp3dEditor extends LitElement {
               ${this.renderBackground(floor)} ${this.renderGrid()} ${this.renderGhost()} ${walls ? this.renderWalls(walls.walls) : nothing}
               ${floor ? this.renderOutdoor(floor) : nothing} ${floor ? this.renderRooms(floor) : nothing} ${floor ? this.renderFurniture(floor) : nothing}
               ${floor ? this.renderFreeWalls(floor) : nothing}
-              ${floor && walls ? this.renderOpenings(floor, walls.walls) : nothing} ${floor ? this.renderMeter(floor) : nothing}
+              ${floor && walls ? this.renderOpenings(floor, walls.walls) : nothing} ${floor ? this.renderGates(floor) : nothing} ${floor ? this.renderMeter(floor) : nothing}
               ${floor && this._tool === "select" ? this.renderDevices(floor) : nothing}
               ${this.room && this.isAdmin && this._tool === "select" && !this._openingId && !this._furnitureId && !this.isFixedItem("room", this.room.id) ? this.renderHandles(this.room) : nothing}
               ${floor ? this.renderOutdoorHandles(floor) : nothing}
@@ -9762,6 +9812,40 @@ export class Fp3dEditor extends LitElement {
     return html`<label class="fp3d-check fp3d-multi-toggle"><input type="checkbox" .checked=${this._multiMode} @change=${(e: Event) => (this._multiMode = (e.target as HTMLInputElement).checked)} /> ${this.t("multi_mode")}</label>`;
   }
 
+  /** Gates, the much simpler outdoor sibling of `renderOpenings`: a gap in the fence line and a
+   * swing-open indicator from the hinge, since a fence has no thickness to draw a leaf symbol into. */
+  private renderGates(floor: Floor) {
+    return svg`<g>${floor.openings.map((o) => {
+      if (o.type !== "gate" || !o.outdoor_id) return nothing;
+      const area = (floor.outdoor ?? []).find((a) => a.id === o.outdoor_id);
+      if (!area || area.points.length < 3) return nothing;
+      const poly = signedArea(area.points) >= 0 ? area.points : [...area.points].reverse();
+      const a = poly[o.edge % poly.length];
+      const b = poly[(o.edge + 1) % poly.length];
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const ux = (b[0] - a[0]) / len;
+      const uz = (b[1] - a[1]) / len;
+      const n: Vec2 = [-uz, ux];
+      const at = (s: number, k = 0): Vec2 => [a[0] + ux * s + n[0] * k, a[1] + uz * s + n[1] * k];
+      const q = (p: Vec2) => this.toScreen(p);
+      const s0 = o.offset - o.width / 2;
+      const s1 = o.offset + o.width / 2;
+      const sel = o.id === this._openingId;
+      const cls = `fp3d-open fp3d-open-gate${sel ? " fp3d-open-sel" : ""}`;
+      const gap = [q(at(s0, 0.05)), q(at(s1, 0.05)), q(at(s1, -0.05)), q(at(s0, -0.05))];
+      const [h0x, h0y] = q(at(s0));
+      const [h1x, h1y] = q(at(s1));
+      const hingeS = o.hinge === "left" ? s0 : s1;
+      const [hx, hy] = q(at(hingeS));
+      const [ox, oy] = q(at(hingeS, o.width * 0.8));
+      return svg`<g data-opening=${o.id} class=${cls}>
+        <line class="fp3d-open-hit" x1=${h0x} y1=${h0y} x2=${h1x} y2=${h1y} />
+        <polygon class="fp3d-open-gap" points=${gap.map((p) => p.join(",")).join(" ")} />
+        <line x1=${hx} y1=${hy} x2=${ox} y2=${oy} />
+      </g>`;
+    })}</g>`;
+  }
+
   private renderOpenings(floor: Floor, walls: Wall[]) {
     return svg`<g>${floor.openings.map((o) => {
       const host = openingHost(o, floor.rooms, floor.walls ?? []);
@@ -10626,7 +10710,45 @@ export class Fp3dEditor extends LitElement {
     >`;
   }
 
+  /** A gate's own, much simpler form: width, position, height, hinge/swing and its entities – no
+   * sashes, blinds or styles, since it sits in a fence line rather than a room wall. */
+  private renderGateForm(o: Opening) {
+    const admin = this.isAdmin;
+    const dc = (id: string) => this.hass?.states[id]?.attributes.device_class as string | undefined;
+    const contacts = this.entityOptions((id) => id.startsWith("binary_sensor.") && ["door", "window", "opening", "garage_door"].includes(dc(id) ?? ""));
+    const locks = this.entityOptions((id) => id.startsWith("lock."));
+    const autoPick = (key: "contact") => {
+      if (!this.hass) return null;
+      const probe = structuredClone(this._doc.floors);
+      for (const f of probe) for (const x of f.openings) if (x.id === o.id) x[key] = null;
+      return openingEntities(this.hass, probe).get(o.id)?.[key] ?? null;
+    };
+    return html`<section>
+      <div class="fp3d-h3row"><h3>${this.t("opening_gate" as I18nKey)}</h3>${this.fixButton("opening", o.id)}</div>
+      <div class="fp3d-form">
+        ${this.len(this.t("width"), o.width, (v) => this.updateOpening({ width: Math.max(0.3, v) }), 0.01, 0.3)}
+        ${this.len(this.t("opening_position"), o.offset, (v) => this.updateOpening({ offset: Math.max(0, v) }), 0.01, 0)}
+        ${this.len(this.t("opening_height"), o.height, (v) => this.updateOpening({ height: Math.max(0.3, v) }), 0.01, 0.3)}
+      </div>
+      ${admin
+        ? html`<div class="fp3d-actions">
+            <button class="fp3d-btn" title=${this.t("flip_hinge_hint")} @click=${() => this.updateOpening({ hinge: o.hinge === "left" ? "right" : "left" })}>
+              ⇆ ${this.t("flip_hinge")}
+            </button>
+            <button class="fp3d-btn" title=${this.t("flip_swing_hint")} @click=${() => this.updateOpening({ swing: o.swing === "out" ? "in" : "out" })}>
+              ⇅ ${this.t("flip_swing")}
+            </button>
+          </div>`
+        : nothing}
+      <div class="fp3d-form">
+        ${this.entitySelect(this.t("contact_entity"), o.contact, autoPick("contact"), contacts, (v) => this.updateOpening({ contact: v }))}
+        ${this.entitySelect(this.t("door_lock"), o.lock ?? null, undefined, locks, (v) => this.updateOpening({ lock: v === "none" ? null : v }))}
+      </div>
+    </section>`;
+  }
+
   private renderOpeningForm(o: Opening) {
+    if (o.type === "gate") return this.renderGateForm(o);
     const admin = this.isAdmin;
     const window = o.type === "window";
     const garage = o.type === "garage";
@@ -10702,9 +10824,9 @@ export class Fp3dEditor extends LitElement {
       <div class="fp3d-h3row"><h3>${this.t(`preset_${preset}` as I18nKey)}</h3>${this.fixButton("opening", o.id)}</div>
       ${admin
         ? html`<div class="fp3d-presets" role="group" aria-label=${this.t("opening_type")}>
-            ${(Object.keys(OPENING_PRESETS) as OpeningPreset[]).map(
-              (p) => html`<button class="fp3d-chip" aria-pressed=${p === preset} @click=${() => this.setOpeningPreset(o, p)}>${this.t(`preset_${p}` as I18nKey)}</button>`,
-            )}
+            ${(Object.keys(OPENING_PRESETS) as OpeningPreset[])
+              .filter((p) => p !== "gate")
+              .map((p) => html`<button class="fp3d-chip" aria-pressed=${p === preset} @click=${() => this.setOpeningPreset(o, p)}>${this.t(`preset_${p}` as I18nKey)}</button>`)}
           </div>`
         : nothing}
       ${admin && !garage
@@ -15814,6 +15936,10 @@ export class Fp3dEditor extends LitElement {
       .fp3d-open-window line {
         stroke: var(--fp3d-accent);
         stroke-width: 2;
+      }
+      .fp3d-open-gate line {
+        stroke: var(--fp3d-warm);
+        stroke-width: 3;
       }
       .fp3d-open-sel .fp3d-open-gap {
         fill: rgba(55, 224, 255, 0.25);

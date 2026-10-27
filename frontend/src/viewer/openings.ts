@@ -272,6 +272,33 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       if (closed > 0.01) panel(blinds, tf, 0.02, W - 0.02, plane, bottom, T, panelC, cut, bucket, 0.5);
       const up = (1 - closed) * T;
       if (up > 0.01) flatPanel(blinds, tf, 0.02, W - 0.02, plane, plane + up, T + 0.03, panelC, bucket, 0.5);
+    } else if (info.opening.type === "gate") {
+      // slim end posts, sturdier than the fence's own, and a close-board leaf swinging on its hinge
+      const n0 = -info.faceOut - 0.01;
+      const n1 = info.faceRoom + 0.01;
+      splitBox(frames, tf, -0.03, 0.03, n0, n1, 0, T + 0.02, frameC, frameTop, cut, bucket);
+      splitBox(frames, tf, W - 0.03, W + 0.03, n0, n1, 0, T + 0.02, frameC, frameTop, cut, bucket);
+      const s = info.opening.swing === "out" ? -1 : 1;
+      const face = s > 0 ? info.faceRoom : -info.faceOut;
+      const open = Math.min(1, Math.max(0, st.open));
+      const theta = open * DOOR_ANGLE;
+      const lw = Math.max(0.1, W - 0.06);
+      const leafTf: Tf = (u, n, y) => {
+        const along = u * Math.cos(theta) - n * Math.sin(theta);
+        const nn = face + s * (n * Math.cos(theta) + u * Math.sin(theta));
+        return tf(info.hingeAtStart ? 0.03 + along : W - 0.03 - along, nn, y);
+      };
+      const warm = open > 0.9;
+      const leafC = warm ? shade(OPEN_WARM, 0.7) : new Color(LEAF);
+      const leafTop = warm ? shade(OPEN_WARM, 0.9) : new Color(LEAF_TOP);
+      const leafBucket = open > 0.05 ? ALWAYS : bucket;
+      splitBox(frames, leafTf, 0, lw, -0.014, 0.014, 0.03, T - 0.02, leafC, leafTop, cut, leafBucket);
+      // vertical seams suggest overlapping close-board slats
+      const slats = Math.max(2, Math.round(lw / 0.14));
+      for (let k = 1; k < slats; k++) {
+        const x = (lw * k) / slats;
+        panel(frames, leafTf, x - 0.003, x + 0.003, 0.0145, 0.03, T - 0.02, shade(LEAF_TOP, 0.6), cut, leafBucket);
+      }
     } else if (openingStyle(info.opening, info.exterior) === "glass_wall") {
       // an indoor glass wall: a slim frame, mullions about every 0.9 m, glass from the floor up, no sashes
       const fw = 0.04;

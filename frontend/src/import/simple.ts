@@ -121,7 +121,7 @@ export function repairPlan(input: Building): { building: Building; warnings: War
     if (dropped) warnings.push({ code: "rooms_skipped", floor: floor.name, n: dropped });
     let bad = 0;
     floor.openings = (Array.isArray(f.openings) ? f.openings : []).flatMap((o) => {
-      const room = floor.rooms.find((r) => r.id === roomIds.get(o.room_id));
+      const room = floor.rooms.find((r) => o.room_id != null && r.id === roomIds.get(o.room_id));
       const edge = Math.round(n(o.edge, -1));
       if (!room || edge < 0 || edge >= room.points.length) {
         bad++;

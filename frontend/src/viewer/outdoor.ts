@@ -213,24 +213,52 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor, wat
         break;
       }
       case "fence": {
-        // posts every ~2 m and two rails along the outline, following the ground
+        // posts every ~2 m and a solid close-board panel along the outline, following the ground;
+        // a gate cut into an edge (#outdoor_id) leaves a gap, with sturdier posts either side of it
         for (let i = 0; i < poly.length; i++) {
           if (i === openEnd) continue;
           const p = poly[i];
           const q = poly[(i + 1) % poly.length];
-          const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
-          const n = Math.max(1, Math.round(len / 2));
-          // an open fence also gets the post at its far end
-          const last = openEnd >= 0 && i === openEnd - 1 ? n : n - 1;
-          for (let k = 0; k <= last; k++) {
-            const t = k / n;
-            const x = p[0] + (q[0] - p[0]) * t;
-            const z = p[1] + (q[1] - p[1]) * t;
+          const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+          const ax: Vec2 = [(q[0] - p[0]) / len, (q[1] - p[1]) / len];
+          const at = (s: number): Vec2 => [p[0] + ax[0] * s, p[1] + ax[1] * s];
+          const post = (s: number) => {
+            const [x, z] = at(s);
             const gy = groundAt(x, z);
             pushPrism(buf, ccw([[x - 0.04, z - 0.04], [x + 0.04, z - 0.04], [x + 0.04, z + 0.04], [x - 0.04, z + 0.04]]), gy, gy + look.top, look.side, look.color);
+          };
+          const gates = (floor.openings ?? [])
+            .filter((o) => o.type === "gate" && o.outdoor_id === a.id && o.edge === i)
+            .map((o): [number, number] => {
+              const w = Math.min(o.width, len);
+              const s0 = Math.max(0, Math.min(len - w, o.offset - w / 2));
+              return [s0, s0 + w];
+            })
+            .sort((x, y) => x[0] - y[0]);
+          const runs: [number, number][] = [];
+          let cursor = 0;
+          for (const [gs, ge] of gates) {
+            if (gs > cursor) runs.push([cursor, gs]);
+            cursor = Math.max(cursor, ge);
           }
-          for (const y of [0.35, 0.85]) {
-            lines.seg([p[0], groundAt(p[0], p[1]) + y * look.top, p[1]], [q[0], groundAt(q[0], q[1]) + y * look.top, q[1]], edge, ALWAYS);
+          if (len - cursor > 1e-4) runs.push([cursor, len]);
+          for (const [s0, s1] of runs) {
+            const n = Math.max(1, Math.round((s1 - s0) / 2));
+            for (let k = 0; k <= n; k++) post(s0 + ((s1 - s0) * k) / n);
+            const [px, pz] = at(s0);
+            const [qx, qz] = at(s1);
+            const gy0 = groundAt(px, pz);
+            const gy1 = groundAt(qx, qz);
+            pushBeam(buf, [px, pz], [qx, qz], 0.03, gy0, gy0 + look.top, look.side, look.color, gy1 - gy0);
+            lines.seg([px, gy0, pz], [qx, gy1, qz], edge, ALWAYS);
+            lines.seg([px, gy0 + look.top, pz], [qx, gy1 + look.top, qz], edge, ALWAYS);
+            // thin seams suggest the overlapping vertical boards of a close-board fence
+            const boards = Math.max(1, Math.round((s1 - s0) / 0.15));
+            for (let k = 1; k < boards; k++) {
+              const [bx, bz] = at(s0 + ((s1 - s0) * k) / boards);
+              const gy = groundAt(bx, bz);
+              lines.seg([bx, gy + 0.03, bz], [bx, gy + look.top - 0.03, bz], edge, ALWAYS);
+            }
           }
         }
         break;
