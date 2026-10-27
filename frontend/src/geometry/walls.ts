@@ -513,6 +513,26 @@ export function pointOnRoomEdge(room: Room, edge: number, offset: number): Vec2 
 }
 
 /**
+ * A free wall drawn as an outer wall: rooms on one side only, the other side open. Returns the side of the
+ * rooms as seen along a -> b (true = left), or null for a wall with rooms on both sides or on neither.
+ */
+export function freeWallRoomLeft(wall: Pick<Wall, "a" | "b" | "left" | "right">, rooms: readonly Room[]): boolean | null {
+  const d = sub(wall.b, wall.a);
+  const n = leftNormal(unit(d));
+  const inRoom = (p: Vec2) => rooms.some((r) => r.points.length >= 3 && pointInPolygon(p, r.points));
+  let left = 0;
+  let right = 0;
+  for (const t of [0.2, 0.5, 0.8]) {
+    const p = add(wall.a, mul(d, t));
+    if (inRoom(add(p, mul(n, wall.left + 0.2)))) left++;
+    if (inRoom(sub(p, mul(n, wall.right + 0.2)))) right++;
+  }
+  if (left >= 2 && right === 0) return true;
+  if (right >= 2 && left === 0) return false;
+  return null;
+}
+
+/**
  * The line an opening sits on, as a room and an edge: the edge of its room, or for an opening in a
  * free wall a virtual triangle room whose edge 0 is the free wall (the room side is its left).
  */
@@ -543,7 +563,8 @@ export function locateOpening(walls: readonly Wall[], o: Pick<Opening, "wall" | 
  * opening may reach across such a transition (#624).
  */
 export function wallContinuation(walls: readonly Wall[], wall: Wall, atEnd: boolean): Wall | null {
-  if (!wall.exterior || wall.free) return null;
+  // also an inner wall that one room splits with an extra corner on a straight line (a door wider than the piece, 2.0.6)
+  if (wall.free) return null;
   const p = atEnd ? wall.b : wall.a;
   const ax = unit(sub(wall.b, wall.a));
   const at = (q: Vec2) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1e-3;
@@ -551,7 +572,7 @@ export function wallContinuation(walls: readonly Wall[], wall: Wall, atEnd: bool
   for (const w of walls) {
     if (w === wall || !(at(w.a) || at(w.b))) continue;
     // any other wall meeting at the transition (a partition, a corner) ends the reach
-    if (next || !w.exterior || w.free || !at(atEnd ? w.a : w.b) || dot(unit(sub(w.b, w.a)), ax) < 0.9999) return null;
+    if (next || w.exterior !== wall.exterior || w.free || !at(atEnd ? w.a : w.b) || dot(unit(sub(w.b, w.a)), ax) < 0.9999) return null;
     if (Math.abs(w.left - wall.left) > 1e-3 || Math.abs(w.right - wall.right) > 1e-3) return null;
     next = w;
   }

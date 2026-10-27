@@ -167,7 +167,7 @@ Ein ausgewählter Raum zeigt rechts:
 
 Wände entstehen automatisch: Jede gemeinsame Kante zweier Räume wird eine Innenwand, jede Außenkante eine Außenwand. Ecken und T-Stöße werden sauber verschnitten. Die Stärken stellst du unter **Einstellungen** ein.
 
-**Einzelne Wände:** Mit dem Werkzeug **Wand** ziehst du eine frei stehende Wand, zum Beispiel einen Raumteiler, der nur durch den halben Raum geht. **Umschalt** hält sie gerade, **Alt** zeichnet ohne Fangen. Trifft sie auf eine Raumwand, wird die Ecke verschnitten. Ausgewählt ziehst du die Endpunkte an den Griffen oder die ganze Wand an der Linie. Rechts stellst du **X** und **Y** (die Mitte der Wand, wie bei Möbeln; so setzt du sie zentimetergenau, ohne Raster), **Länge**, **Wandstärke** und **Höhe** ein. In 3D verhält sie sich wie jede Innenwand. Auch in einzelne Wände setzt du mit **Tür & Fenster** Türen und Fenster ein (siehe 4.7). Löschst du die Wand, verschwinden ihre Türen und Fenster mit.
+**Einzelne Wände:** Mit dem Werkzeug **Wand** ziehst du eine frei stehende Wand, zum Beispiel einen Raumteiler, der nur durch den halben Raum geht. **Umschalt** hält sie gerade, **Alt** zeichnet ohne Fangen. Trifft sie auf eine Raumwand, wird die Ecke verschnitten. Ausgewählt ziehst du die Endpunkte an den Griffen oder die ganze Wand an der Linie. Rechts stellst du **X** und **Y** (die Mitte der Wand, wie bei Möbeln; so setzt du sie zentimetergenau, ohne Raster), **Länge**, **Wandstärke** und **Höhe** ein. In 3D verhält sie sich wie jede Innenwand. Liegen nur auf einer Seite Räume (eine einzelne Wand als Außenwand gezeichnet), gilt die andere Seite als draußen: Rollläden und Fensterbänke sitzen dort, egal in welche Richtung die Wand gezogen wurde, und sie wird wie die übrigen Außenwände zu Glas, wenn sie zur Kamera zeigt. Auch in einzelne Wände setzt du mit **Tür & Fenster** Türen und Fenster ein (siehe 4.7). Löschst du die Wand, verschwinden ihre Türen und Fenster mit.
 
 **Wandhöhe:** Jede Wand kann niedriger sein als der Raum, etwa als Brüstung oder Theke. Bei einer einzelnen Wand stellst du die **Höhe** im Formular ein. Bei Räumen (Rechteck und freie Form) wählst du den Raum aus; im Formular steht der Kasten **Wandhöhen** mit jeder Wand des Raums, benannt nach ihren Eckpunkten (z. B. „Wand 2–3“, die Nummern stehen im Plan an den Ecken) und mit ihrer Länge. Fährst du über eine Zeile oder tippst in ihr Feld, leuchtet die Wand im Plan auf. ↥ setzt sie auf volle Raumhöhe zurück. Teilen sich zwei Räume die Wand, gilt die niedrigere Einstellung. Fenster und Türen in einer niedrigen Wand enden an der Wandhöhe. Niedrige Wände erscheinen im Plan heller. Soll eine Wand in einer Flucht zwei Höhen haben (2,5 m neben 1,7 m), teilst du sie mit **✂**: Das Teilstück bekommt eine eigene Zeile und Höhe, der Teilpunkt lässt sich im Feld **Teilpunkt ab Ecke** verschieben (im Plan als Strich markiert), **⨉** fügt die Teile wieder zusammen.
 
@@ -225,11 +225,12 @@ Stoßen zwei Räume ohne Wand aneinander (offener Übergang) und läuft die Auß
 Jede Öffnung hat:
 
 - **Breite**, **Brüstung** und **Höhe**, dazu die Anschlagseite. Mit **Auswählen** schiebst du sie entlang der Wand.
-- **Fensterbank** (nur Fenster): *automatisch* (Standard) zeichnet ab 30 cm Brüstung eine Fensterbank innen und außen – außer bei einem Fenster, das direkt auf einem anderen Fenster oder einer Tür derselben Wand sitzt (Oberlicht, feststehendes Oberteil, in zwei Teile geteilte Glasfront): Das bekommt keine eigene. *Keine*, *nur innen* oder *nur außen* legen es fest, etwa für eine Fensterfront ohne Brett oder ein Fenster über einer Küchenzeile.
+- **Fensterbank** (nur Fenster): *automatisch* (Standard) zeichnet ab 30 cm Brüstung eine Fensterbank innen und außen – außer bei einem Fenster, das direkt auf einem anderen Fenster oder einer Tür derselben Wand sitzt (Oberlicht, feststehendes Oberteil, in zwei Teile geteilte Glasfront): Das bekommt keine eigene. *Keine*, *nur innen* oder *nur außen* legen es fest, etwa für eine Fensterfront ohne Brett oder ein Fenster über einer Küchenzeile. Von Hand gewählt erscheint sie auch bei einem bodentiefen Fenster oder einer Terrassentür (dann auf Bodenhöhe) und bei einer Glaswand, die von sich aus keine hat.
 - **Stil:** Zimmertür, Haustür, Haustür mit Glasausschnitt, mit einem oder zwei Seitenteilen, Glastür, Schiebetür oder **Durchbruch (ohne Tür)**. Bei Seitenteilen stellst du darunter ihre **Breite** ein (leer = automatisch), bei zweien links und rechts getrennt; ein einzelnes Seitenteil sitzt gegenüber dem Anschlag, mit **Seitenteil an der Anschlagseite** neben den Bändern. Ein Durchbruch ist nur eine Öffnung in der Wand, ohne Zarge und Türblatt; das Licht fällt immer hindurch. Fenster gibt es als Standard oder mit Sprossen. „Automatisch“ wählt eine Haustür für Außentüren.
 - **Flügel:** einflügelig oder zweiflügelig, mit eigenem Kontakt für den zweiten Flügel.
 - **Markieren in 3D:** *Wenn offen* (Standard) lässt offene Fenster und Türen warm leuchten. *Wenn geschlossen* dreht das um, etwa für die WC- oder die Kinderzimmertür: Sie leuchtet, solange sie zu ist. Das braucht einen Kontakt; ohne Sensor wird nichts markiert.
 - **Ohne Sensor geschlossen zeigen:** Eine Tür ohne Kontakt steht in 3D halb offen, damit man sie als Tür erkennt. Der Haken zeichnet sie geschlossen, etwa für eine Haustür oder ein Carport ohne Sensor.
+- **Öffnungswinkel (seit 2.0.6):** Wie weit das Türblatt offen steht: **Standard**, 15°, 30°, 45°, 60° oder 90°. Ohne Sensor steht die Tür immer so weit offen, mit Sensor öffnet sie so weit, sobald er „offen“ meldet. **Standard** bleibt wie bisher: ohne Sensor halb offen, mit Sensor ganz offen.
 - **Smart Lock:** Das Schloss der Tür (Nuki, Aqara, `lock.*`). In 3D steht ein Pin an der Tür: 🔒 zu, rot leuchtend, solange sie offen ist; ein Tipp schließt auf oder ab. Auch ein Tipp auf die Tür selbst (ohne Antrieb) öffnet ihr Menü mit **Abschließen** bzw. **Aufschließen**, immer mit Rückfrage; solange das Schloss offen ist, leuchtet die freie Kante des Türblatts sanft in der Akzentfarbe – egal, was der Türkontakt meldet. An einer zweiflügeligen Tür oder Terrassentür sitzt der Pin am Hauptflügel (auf der Seite des Anschlags). Die Sprache fragt es ab („Ist die Haustür abgeschlossen?“).
 - **Kontakt umkehren:** Für Sensoren, die offen und geschlossen andersherum melden. NeonPlan zeigt dann offen, wenn der Sensor geschlossen meldet, und umgekehrt (Standard: aus).
 
@@ -244,7 +245,7 @@ Türen und Fenster lassen sich im Plan auch an einem breiten Streifen um die Öf
 | **Rollladen** | Der Rollladen fährt vor dem Fenster – oder vor einer Tür (Haustür, Terrassentür, Schiebetür) – mit der Position der Cover-Entität |
 | **Positions-Sensor** | Für Rollläden, deren Position über einen eigenen Sensor kommt, etwa bei Homematic. Bei Bedarf umkehrbar |
 | **Vor dem Schalten nachfragen** | Auf, Zu und Positionen fragen im Schnellmenü und im Raumfenster erst nach, und Wischen über das Symbol bewegt den Rollladen nicht mehr (es dreht dann die Ansicht). Stopp fragt nie. Gut für Tablets, auf denen Rollläden oder das Garagentor sonst versehentlich fahren |
-| **Kontakt** | Die Tür schwingt auf, das Fenster öffnet sich |
+| **Kontakt** | Die Tür schwingt auf, das Fenster öffnet sich. Angeboten werden Binärsensoren der Klasse Tür, Fenster oder Öffnung und solche ohne Klasse (KNX, enOcean, Template-Sensoren haben oft keine) |
 | **Kippkontakt** | Ein zweiter Sensor, der „gekippt“ meldet |
 | **Kippwinkel-Sensor** | Optional: ein Sensor, der den Kippwinkel in Grad liefert (z. B. „Rotation“ eines Shelly BLU Door/Window). Der Flügel kippt in 3D genau so weit; **Winkel für „ganz gekippt“** (Standard 15°), ein **Offset** für den Wert bei geschlossenem Fenster und **andersherum zählen** passen ihn an die Montage an. Ab einem kleinen Winkel gilt das Fenster als gekippt, auch für die Regenwarnung |
 | **Kontakt zweiter Flügel** | Für zweiflügelige Fenster und Türen |
@@ -436,6 +437,7 @@ Ein einfaches Haus bekommt unter **Bauen → Dach** bei **Dachform** ein Flach- 
 - Jede Dachfläche hat eine **Form** – Sattel, Walm, Krüppelwalm (oben abgewalmter Giebel), Zelt (vier Flächen zur Spitze), Mansard (steil unten, flach oben), Pult, Flach und Attika (Flachdach mit Brüstung) – und eine **Firstrichtung** (↔ oder ↕).
 - Bei Sattel, Walm und Krüppelwalm wählst du unter **Ende links/rechts** (bzw. **oben/unten**) für jedes Ende des Firsts eigens Giebel, Walm oder Krüppelwalm – zum Beispiel ein Walmdach mit einem senkrechten Giebel am anderen Ende. **wie die Form** lässt das Ende so, wie die Form es vorgibt.
 - **Traufe** und **Neigung** stellst du für beide Seiten getrennt ein. Alle Höhen zählen vom Boden. Eine Seite mit tieferer Traufe zieht weiter herunter, so entsteht etwa ein Abschleppdach über einem niedrigen Anbau. Ein Pultdach steigt von der ersten Seite an; **Seiten tauschen** dreht es um.
+- **Drehung:** Steht ein Anbau oder Flügel schräg zum Haus, drehst du seine Dachfläche mit **Drehung** (oder ↺ 15° / ↻ 15°) im Uhrzeigersinn. Gauben und Zwerchgiebel darauf drehen mit, Dachfenster und Solarfelder bleiben auf ihr. Eine gedrehte Fläche verschiebst du durch Ziehen; die Ecken zum Ändern der Größe gibt es erst wieder bei 0° (zurückdrehen, Größe ändern, wieder drehen). Wo ein gedrehter Flügel in ein anderes Dach läuft, schneidet ihn dessen Dachfläche ab. Ab Werk steht jede Dachfläche auf 0°.
 - **Wandoberkante** ist die Höhe, auf der die Wände unter dem Dach enden. Eine neue Dachfläche übernimmt sie von den Räumen darunter, egal welche Etage der Plan gerade zeigt. Von dort werden Giebel und Drempel bis unter das Dach hochgezogen, so ist auch der Raum unter einem Pultdach geschlossen.
 - **Sitzt auf Etage** zeigt, zu welcher Etage die Dachfläche in der 3D-Ansicht gehört, und setzt sie auf die Wandoberkante einer anderen Etage – Wandoberkante und Traufen wandern mit. Das hilft, wenn eine neue Dachfläche auf der falschen Etage gelandet ist, etwa über einem Obergeschoss mit Treppenloch in der Mitte.
 - **Flachdach als freie Form:** Bei einem Flachdach gibt es den Knopf **Umriss des Geschosses übernehmen** – die Fläche bekommt den Umriss der Räume des angezeigten Geschosses (auch L- oder Z-förmig), eine Fläche ohne Kanten statt mehrerer Rechtecke. Die Ecken lassen sich danach im Plan ziehen; **Zurück zum Rechteck** löscht die Form.
@@ -606,7 +608,7 @@ Alle Schalter merkt sich das jeweilige Gerät.
 
 - **Antippen** schaltet Lampen und Schalter. Die Lampe blinkt kurz zur Bestätigung.
 - **Senkrecht wischen** auf einer Lampe dimmt, auf einem Rollladen oder Fenster fährt der Rollladen. Der Wert erscheint am Finger. Geräte und Fenster mit „Vor dem Schalten nachfragen“ reagieren nicht auf Wischen.
-- **Lange drücken** öffnet das Schnellmenü: bei Lichtern Helligkeit, Farbtemperatur und Farben, bei Rollläden Auf, Stopp, Zu und feste Positionen. Raffstores und Jalousien mit Lamellen bekommen dort und im Raumfenster einen **Lamellen**-Regler (oder Lamellen auf/zu), sobald die Entität das kann.
+- **Lange drücken** öffnet das Schnellmenü: bei Lichtern Helligkeit, Farbtemperatur und Farben, bei Rollläden Auf, Stopp, Zu und feste Positionen. Raffstores und Jalousien mit Lamellen bekommen dort und im Raumfenster einen **Lamellen**-Regler (oder Lamellen auf/zu), sobald die Entität das kann. Rollläden, Garagentore und Vorhänge bekommen sie nur, wenn sie eine Lamellen-Stellung melden (manche Integrationen wie KNX kündigen Lamellen-Knöpfe auch bei Rollläden an).
 - Ein **Fenster** antippen, egal ob Rahmen, Glas oder Rollladen, öffnet das Rollladen-Menü oder zeigt den Kontakt.
 - **Doppeltipp auf einen Raum** schaltet alle Lichter des Raums ein oder aus. Geräte mit „Vor dem Schalten nachfragen“ bleiben außen vor.
 - Fernseher, Türen und Garagentore lassen sich ebenfalls direkt antippen.
@@ -668,6 +670,8 @@ NeonPlan 3D warnt kostenlos und ohne Einrichtung:
 Der betroffene Raum pulsiert rot, oben erscheint ein Banner. Ein Tipp auf die Warnung springt in den Raum. Die Regenwarnung nimmt die Wetter-Entität aus den Plan-Einstellungen und lässt sich dort unter **Warnung: Fenster offen bei Regen** einzeln abschalten. Ein einzelnes Fenster, das bei Regen offen bleiben darf (etwa unter dem Vordach), bekommt in seinem Formular den Haken **Bei Regen nicht warnen**. Hast du eine eigene Wetterstation, wählst du unter **Regen von eigener Wetterstation** ihren Regensensor (an = Regen) oder ihre Regenrate (mm/h): Dann zählt, ob es am Haus wirklich regnet – für die Warnung und, mit „Wetter draußen“, auch für den Regen in 3D.
 
 Auf einem Wandtablet kann das Banner lang werden: „Gäste-WC · Fenster offen bei Regen: Fenster Gästebad“. Schaltest du in den Plan-Einstellungen **Gerätenamen in Warnungen zeigen** aus, steht dort nur „Gäste-WC · Fenster offen bei Regen“. Eine Warnung ohne Raum behält den Gerätenamen.
+
+**Kontakt nicht verfügbar (seit 2.0.6, ab Werk aus):** Meldet ein Fenster- oder Türkontakt 10 Minuten lang „nicht verfügbar“ (leere Batterie, außer Funkreichweite), sieht das Fenster in 3D zu aus, obwohl es niemand weiß. Schaltest du in den Einstellungen unter **Wetter & Warnungen** den Haken **Warnen, wenn ein Fenster- oder Türkontakt nicht verfügbar ist** ein, kommt dann eine Warnung mit dem Namen des Kontakts. Ein kurzer Aussetzer beim Neustart von Home Assistant warnt nicht.
 
 ### 5.9 Kameras in 3D
 
@@ -762,6 +766,84 @@ data:
 - Das Mikrofon ist **nur offen, solange du sprichst**. Es lauscht nicht dauerhaft, deshalb gibt es kein Aktivierungswort. Das schont auch alte Tablets.
 - Die Erkennung übernimmt **deine** Assist-Pipeline. Wie schnell und genau sie ist, hängt von ihr ab. Mit Speech-to-Phrase oder der Cloud dauert ein Satz meist ein bis zwei Sekunden.
 - Hast du die Live-Regie an, unterbricht sie dich nicht, während du sprichst.
+
+### 5.11 Ortung (neu)
+
+> **Neu in 2.0, kostenlos.** Wer und was ist wo im Haus – ohne Bermuda, ohne ESPresense, ohne neue Hardware. NeonPlan nutzt die Bluetooth-Empfänger, die Home Assistant schon kennt.
+
+NeonPlan zeigt, in welchem Raum du gerade bist – und wo dein iPhone oder dein Schlüsselbund liegt. Personen stehen als leuchtende Figur im Raum und gleiten beim Raumwechsel hinüber. Für jedes Gerät gibt es einen Sensor in Home Assistant („Torstens Uhr Raum: Küche“), und per Sprache fragst du „Wo ist mein iPhone?“.
+
+**Was du brauchst:**
+
+- **Bluetooth-Empfänger in Home Assistant** – was du schon hast, reicht:
+  - **Shelly** der 2. und 3. Generation (Steckdosen, Unterputz). Im Shelly-Gerät unter **Konfigurieren → Bluetooth-Scan** auf **passiv** stellen.
+  - **ESPHome-Bluetooth-Proxys** (ein ESP32 für ein paar Euro). Sie melden häufiger als Shellys, Raumwechsel kommen damit schneller an.
+  - den Bluetooth-Stick am Home-Assistant-Rechner.
+
+  Ideal ist ungefähr ein Empfänger pro Raum. Räume ohne eigenen Empfänger (Flur, Gäste-WC) erkennt NeonPlan trotzdem: Das Einlernen merkt sich, wie sie für die Empfänger in den Nachbarräumen aussehen.
+- **Etwas, das du dabei hast:**
+  - **Apple Watch und iPhone** mit ihrem Schlüssel (IRK) – den liest der Schlüssel-Helfer in drei Minuten aus (siehe unten). Die Uhr am Handgelenk ist ideal: Ein iPhone in der Tasche wird bei dunklem Bildschirm nach etwa einer Minute still.
+  - **Android-Handys:** In der Home-Assistant-App unter **Einstellungen → Companion-App → Sensoren verwalten → BLE-Sender** einschalten. Kein Schlüssel nötig. Stell dort die **Sendeleistung auf „Hoch“** und den **Sendemodus auf „Niedrige Latenz“**: Ab Werk sendet die App so schwach, dass die Empfänger sie kaum hören. NeonPlan findet das Handy dann von selbst und zeigt einen Hinweis, wenn eine Einstellung zu schwach ist.
+  - **Android über den Schlüssel-Helfer koppeln bringt nichts:** Android sendet diesen Schlüssel im Hintergrund nicht, das Gerät bleibt „nicht gehört“.
+  - **Schlüsselanhänger** mit fester Adresse oder als iBeacon (z. B. Nut, Tile, iBeacon-Tags). **AirTags gehen nicht** – sie wechseln ihre Adresse, und Apple gibt keinen Schlüssel heraus.
+
+**Einrichten** (Editor → **⚙ Einstellungen → 📡 Ortung**, nur Admins):
+
+1. **Empfänger:** NeonPlan listet alle Bluetooth-Empfänger von Home Assistant und schlägt ihren Raum vor – aus dem Home-Assistant-Bereich des Geräts, aus einem Pin oder Möbel im Plan (die Waschmaschine mit dem Strommesser der Shelly-Steckdose) oder aus dem Namen („PC Büro Steckdose“). Nach dem Einlernen weiß NeonPlan aus den Signalen selbst, wo jeder Empfänger steht, und bietet bei Abweichungen **„Signal sagt: … – übernehmen“** an.
+2. **Geräte:** Uhr und iPhone über den **🔑 Schlüssel-Helfer**, Android-Handys stehen unter **📱 Android mit der Home-Assistant-App** von selbst in der Liste, Anhänger über **📱 Android-Handy oder Schlüsselanhänger hinzufügen** (das Gerät direkt an einen Empfänger halten). Hört gerade kein Empfänger ein Gerät, steht **⚠ nicht gehört** daneben; einen Schlüssel, den du schon hast, trägst du unter **🔑 Eigenen Schlüssel einfügen** ein. Gib jedem Gerät einen Namen, ordne es einer Person zu und – für „Lass mein iPhone klingeln“ – die Home-Assistant-App des Handys.
+3. **Einlernen:** Hake an, welche Geräte du gerade **dabei hast**. Geh in jeden Raum, tippe ihn an und lauf **90 Sekunden** langsam herum, auch in die Ecken und an den Wänden entlang. Ein Handy dabei in die **Tasche** (Bildschirm aus), so wie im Alltag – zum Antippen nimmst du am besten ein anderes Tablet oder Handy. **Einmal einlernen reicht:** Geräte ohne eigene Lerndaten nutzen die der anderen mit. Der Countdown läuft mit, bei 0 ist der Raum fertig (✓). Danach zeigt **Trefferquote prüfen**, wie sicher jeder Raum erkannt wird. Einen schwachen Raum lernst du einfach noch einmal ein.
+4. **Live:** Ortung einschalten und durchs Haus gehen – die Liste zeigt sofort, wo NeonPlan dich sieht.
+
+**In der 3D-Ansicht:**
+
+- **Uhr und Handy einer Person:** Was am Körper getragen wird (Uhr, Band – Haken **⌚ am Körper**, bei „Watch“ oder „Uhr“ im Namen schon gesetzt) bestimmt, wo die Person steht, solange es in den letzten zwei Minuten gehört wurde; sonst das zuletzt gehörte Gerät. Melden Uhr und Handy gleichzeitig verschiedene Räume (typisch an einer gemeinsamen Wand), gewinnt das Handy nur, wenn es sich deutlich sicherer ist (mehr als 15 Prozentpunkte). Ein Handy, das in einem anderen Raum liegen geblieben ist, während du mit der Uhr weitergegangen bist, erscheint dort als eigenes kleines Symbol. **Präsenzsensoren mit Zonen** (z. B. Aqara FP2): Meldet eine Zone, die wie ein Möbel im Raum heißt („Sofa“, „Sessel“, „Esstisch“, „Bett“ oder der eigene Name eines Möbels), dass dort jemand ist, steht die Figur an diesem Möbel statt in der Raummitte. Eine Zone an einer Tür („Eingang Flur“, „Terrassentür“) stellt die Figur vor die Tür zum Raum dieses Namens oder vor eine Tür nach draußen; „restlicher Raum“ bleibt die Raummitte. Der Sensor gehört über seinen Home-Assistant-Bereich zum Raum. Umgekehrt genauso: Liegt die Uhr seit zehn Minuten im selben Raum, während das Handy danach den Raum gewechselt hat, gilt sie als abgelegt – dann bestimmt das Handy, wo die Person ist, und die Uhr steht als Symbol dort, wo sie liegt.
+- Personen stehen als **leuchtende Figur** in ihrer Farbe im Raum, mit dem Namen darüber. Dinge (Schlüssel, ein iPhone ohne Person) sind kleine runde Symbole. Antippen zeigt Raum, Sicherheit und seit wann.
+- Im Assistenten unter **4 · Live → Personen in 3D**: **Figur, Pin oder aus** – einmal fürs ganze Haus.
+- Das **Raumfenster** zeigt unter dem Namen, wer gerade hier ist, und die Etagen zählen die Personen mit.
+- **Personen nur für Admins zeigen** (im Schritt Live) blendet sie für alle anderen Benutzer aus.
+
+**Schneller mit Präsenzmeldern:** Bewegungs- und Präsenzmelder (auch Radar wie Aqara FP2), die in Home Assistant einem Bereich zugeordnet sind, beschleunigen die Ortung von selbst: Bluetooth sagt, **wer** es ist, der Melder sagt, **wann** jemand den Raum betritt. Ohne Melder dauert ein Raumwechsel zwei bis fünf Sekunden – mit Melder oft nur einen Augenblick.
+
+**Sprache** (mit den Assist-Sätzen unter **⚙ Einstellungen → Sprachsteuerung**): „Wo ist mein iPhone?“, „Wo ist Torsten?“, „Wer ist zu Hause?“, „Lass mein iPhone klingeln“. Die Antwort kommt direkt aus Home Assistant – auch ohne offenen NeonPlan-Bildschirm. Offene NeonPlan-Ansichten fliegen dabei in den Raum der Antwort, bei „Wer ist zu Hause?“ nacheinander in alle Räume, in denen jemand ist (Antippen stoppt). Ausschalten lässt sich das im Ortungs-Assistenten unter **Live**; solange Personen nur Admins gezeigt werden, fliegen nur die Ansichten von Admins zu ihnen. „Wo ist Frauke?“ mit den Namen aus der Ortung versteht Assist auch dann, wenn ein KI-Agent (z. B. Gemini) die übrigen Fragen beantwortet. Klingeln schickt eine laute Mitteilung an die Home-Assistant-App (auf dem iPhone als kritische Mitteilung, die auch im Lautlos-Modus klingelt).
+
+**Für Automationen:** Jedes Gerät hat einen Sensor, z. B. `sensor.torstens_uhr_raum`. Sein Zustand ist der Raumname; die Attribute sind `room_id`, `area_id` (der Home-Assistant-Bereich des Raums), `floor`, `probability` (Sicherheit 0–1), `since` und `last_seen`. Beispiel – Licht folgt dir:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: sensor.torstens_uhr_raum
+    to: Küche
+actions:
+  - action: light.turn_on
+    target:
+      area_id: kueche
+```
+
+**Wie schnell ein Raumwechsel ankommt:** meist nach **zwei bis fünf Sekunden**. Das liegt an den Empfängern, nicht an NeonPlan: Ein **Shelly** meldet ein Gerät nur etwa **alle drei bis vier Sekunden** weiter, ein **ESP32-Bluetooth-Proxy etwa jede Sekunde**. Uhren senden ein- bis zweimal pro Sekunde, ein iPhone in der Tasche deutlich seltener. NeonPlan wartet zudem zwei, drei Messungen ab, damit die Anzeige nicht zwischen zwei Räumen hin- und herspringt. Schneller wird es mit **ESP32-Proxys** statt Shellys – und mit **Präsenzmeldern**, dann fast sofort.
+
+**Wo die Empfänger am besten stehen:**
+
+- **In einer Ecke oder an einer Außenwand des Raums – nicht an der Wand zum Nachbarraum.** Eine Steckdose direkt hinter der Wand hört dich im Nachbarraum fast genauso laut wie in ihrem eigenen Raum; dann springt die Anzeige zwischen beiden. (Beispiel: Du sitzt in der Küche, der Shelly des Wohnzimmers steckt direkt hinter dir in der gemeinsamen Wand.)
+- **Nicht Rücken an Rücken:** zwei Empfänger auf beiden Seiten derselben Wand machen die beiden Räume schwer zu unterscheiden.
+- **Frei statt verdeckt:** nicht hinter Kühlschrank, Heizkörper, Spiegel oder im Metall-Schaltschrank – Metall und Wasser schlucken Bluetooth.
+- **Ungefähr einer pro Raum.** Räume ohne eigenen Empfänger gehen trotzdem; große oder verwinkelte Räume profitieren von einem zweiten.
+- Wer einen Empfänger umsteckt, lernt die Räume daneben kurz neu ein.
+
+**Gut zu wissen:**
+
+- **Raumgenau, nicht zentimetergenau.** Bluetooth schwankt (schon der eigene Körper dämpft das Signal). NeonPlan sagt zuverlässig den Raum, nicht die Stelle im Raum.
+- **Alles bleibt im Haus.** Die Signale werden nur in Home Assistant ausgewertet, nichts geht ins Internet.
+- **Neu einlernen**, wenn du Empfänger umstellst oder neue dazukommen.
+- **Bermuda oder ESPresense im Einsatz?** NeonPlan läuft parallel und stört sie nicht. Richte deine Geräte einfach hier ein; wenn alles sicher läuft, stellst du deine Automationen auf die neuen Sensoren um und kannst die alten Werkzeuge entfernen.
+
+**Den Schlüssel (IRK) von iPhone und Apple Watch bekommen:** am einfachsten mit dem **NeonPlan Schlüssel-Helfer** – ohne Mac, auch für die Apple Watch:
+
+1. Einen **ESP32** (ESP32, ESP32-C3 oder ESP32-S3, ca. 5 €) per USB an den Computer stecken und auf [neonplan3d.mastershort.de/keys](https://neonplan3d.mastershort.de/keys/) mit Chrome oder Edge auf **Installieren** klicken. Danach das WLAN eintragen.
+2. Home Assistant findet **NeonPlan Key** als ESPHome-Gerät: **Einstellungen → Geräte & Dienste → Entdeckt → Hinzufügen**.
+3. Im Assistenten unter **Geräte → 🔑 Schlüssel-Helfer** „Für Apple Watch“ oder „Für iPhone“ wählen und koppeln: auf der Uhr unter **Einstellungen → Bluetooth → Gesundheitsgeräte** „NeonPlan Key“ antippen, am Handy unter **Einstellungen → Bluetooth**. Der Schlüssel erscheint sofort – **Hinzufügen** tippen. Danach „NeonPlan Key“ in den Bluetooth-Einstellungen wieder entfernen.
+4. **Weitere Geräte:** vorher **🔄 Nächstes Gerät** tippen – der Helfer bekommt eine neue Bluetooth-Kennung, damit sich das zuvor gekoppelte Gerät nicht wieder dazwischen verbindet.
+
+Den ESP32 kannst du danach weiterverwenden, am besten als ESPHome-Bluetooth-Proxy – dann macht er die Ortung sogar schneller. Der Helfer baut auf [irk-capture](https://github.com/DerekSeaman/irk-capture) von Derek Seaman auf (MIT-Lizenz) – danke! Andere Wege: mit einem **Mac** über die Schlüsselbundverwaltung (der Mac muss im selben iCloud-Konto sein). Den Schlüssel fügst du dann im Assistenten unter **Geräte → Schlüssel einfügen** ein (als 32 Zeichen oder so, wie der Mac ihn zeigt).
 
 ---
 
@@ -877,7 +959,7 @@ Auch ohne Solaranlage: Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschin
 
 Der Knopf **Hologramme** in der Energieleiste (neben ⚡) blendet alle Karten aus und wieder ein – praktisch, wenn viele Geräte eine tragen. In der Karte gibt es den Knopf ebenfalls, oder du legst es mit `holograms` fest.
 
-**Wandtablet:** Auf der Tablet-Stufe laufen die Hologramme ohne Glaseffekt, die Leitungen mit halber Bildrate.
+**Wandtablet:** Auf der Tablet-Stufe laufen die Hologramme ohne Glaseffekt, die Leitungen mit etwa 5 Bildern pro Sekunde; 30 Sekunden nach der letzten Berührung bleiben sie stehen, bis jemand wieder tippt.
 
 **Wenn etwas fehlt:** Die Einrichtung oben im Werkzeug zeigt, was noch nicht passt. Kein Hologramm bedeutet meist: kein Sensor am Wechselrichter oder keine Hausansicht (Etagen- und Raumansichten haben keins). Keine Leitung zu einem Gerät: Das Gerät hat keinen Leistungssensor.
 
@@ -895,7 +977,7 @@ Klang & Kino bringt die Musik ins 3D-Haus. Voraussetzung ist ein Lautsprecher im
 
 **Smart Speaker und Displays:** Das Pack **Heimkino & Hi-Fi** hat ab Release 2 Smart Speaker als Kugel, Zylinder, Puck, Pod, hoch und oval, einen Kompakt- und einen tragbaren Multiroom-Lautsprecher, eine Premium-Soundbar und Smart Displays mit 5″, 7″, 8″ und 15″ (Wand) – passend für Echo, Nest, HomePod, Sonos und Co. Mit Klang & Kino leuchtet ihr Lichtring in der App-Farbe, solange sie spielen, und die Displays zeigen das Cover. Solange die Karte über einem Lautsprecher schwebt, tritt sein Pin zur Seite und kommt wieder, wenn die Musik endet. Fernseher und Bildschirme bekommen ihre Farben und Bilder weiter über **Bildschirme live** (6.3).
 
-**Wandtablet:** Auf der Tablet-Stufe laufen die Ringe mit halber Bildrate, die Karten ohne Glaseffekt.
+**Wandtablet:** Auf der Tablet-Stufe laufen die Ringe mit etwa 5 Bildern pro Sekunde und ruhen 30 Sekunden nach der letzten Berührung, die Karten ohne Glaseffekt.
 
 **Welche Lautsprecher passen?** NeonPlan nutzt die Standard-Schnittstelle der Media Player von Home Assistant: Was im Media-Player-Fenster von Home Assistant geht, geht auch hier. Das ist eine Einschätzung nach Dokumentation und Erfahrungen, keine Garantie für jedes Modell:
 
@@ -994,20 +1076,20 @@ Nicht dabei sind Kamerabilder (der Recorder speichert keine) sowie Personen und 
 
 **Voraussetzungen:** der Recorder von Home Assistant (er läuft standardmäßig) und Home Assistant nach dem Update einmal neu gestartet. Wie weit der Verlauf zurückreicht, bestimmt `purge_keep_days` des Recorders (Standard 10 Tage); die Zeitreise braucht davon 24 Stunden, für die ganze Woche mindestens 7 Tage. Wer die Woche nutzen will, lässt `purge_keep_days` also bei 7 oder mehr.
 
-### 6.8 Haushalt Pro (Beta)
+### 6.8 Haushalt Pro
 
-> **Beta, zuerst für Supporter:** Haushalt Pro testen zuerst die Supporter (mit dem [Supporter-Pass](https://mastershort.de/neonplan3d/unterstuetzer/) ist es dabei). Rückmeldungen gern auf Discord in **#beta-feedback** oder auf GitHub.
+> Haushalt Pro gibt es im [Shop](https://mastershort.de/neonplan3d/); mit dem [Supporter-Pass](https://mastershort.de/neonplan3d/unterstuetzer/) ist es dabei. Danke an alle, die es in der Beta getestet haben.
 
 Haushalt Pro zeigt im Haus, was im Haushalt ansteht – dort, wo es passiert. Die Mülltonnen und Briefkästen selbst gibt es für alle (Kapitel 4.23); Haushalt Pro bringt sie und andere Geräte zum Leben. Die Felder dazu stehen im Formular des Möbels unter **🏠 Haushalt Pro**.
 
-- **Mülltonnen:** Wähle unter **Abfallkalender oder Sensor** einen Kalender (z. B. von *Waste Collection Schedule*) oder einen Sensor. Aus einem Kalender sucht NeonPlan die Einträge nach den Wörtern der Abfallart heraus (Papier, Bio, Gelber Sack, PMD, GFT, Recycling … in vielen Sprachen); passt das nicht, trägst du ein eigenes **Stichwort** ein. Ein Sensor darf die Tage bis zur Abholung, ein Datum oder „morgen“/„in 3 Tagen“ melden. Jede Tonne mit Termin trägt ein kleines **Schildchen** auf dem Deckel – „Heute“, „Morgen“, „in 3 Tagen“ – in ihrer Farbe; heute und morgen stehen hervor. Die Schildchen (auch die von Briefkasten und Pflanzen) wachsen mit der **Symbolgröße** wie die Beschriftung der Pins. Ein Tipp auf die Tonne zeigt die nächsten Termine. **Leuchten ab / bis** legt fest, ab wann am Vortag bis wann am Abholtag eine Tonne als „dran“ gilt (für alle Tonnen).
-
-- **Mülltonnen:** Wähle unter **Abfallkalender oder Sensor** einen Kalender (z. B. von *Waste Collection Schedule*) oder einen Sensor. Aus einem Kalender sucht NeonPlan die Einträge nach den Wörtern der Abfallart heraus (Papier, Bio, Gelber Sack, PMD, GFT, Recycling … in vielen Sprachen); passt das nicht, trägst du ein eigenes **Stichwort** ein. Ein Sensor darf die Tage bis zur Abholung, ein Datum oder „morgen“/„in 3 Tagen“ melden. Jede Tonne mit Termin trägt ein kleines **Schildchen** auf dem Deckel – „Heute“, „Morgen“, „in 3 Tagen“ – in ihrer Farbe; heute und morgen stehen hervor. Ein Tipp auf die Tonne zeigt die nächsten Termine. **Leuchten ab / bis** legt fest, ab wann am Vortag bis wann am Abholtag eine Tonne als „dran“ gilt (für alle Tonnen). In den Looks Tag und Blueprint behalten Tonnen und Pack-Möbel mit eigenen Farben (etwa ein Halloween-Kürbis) ihre Farbe bis zum Boden.
-- **Briefkasten:** Ein **Sensor für Post** – ein Merker (z. B. ein input_boolean „Post da“ aus einer Automation) oder die Einwurfklappe – und optional der **Sensor der Entnahmetür**. Liegt Post drin, leuchtet der Briefkasten und zeigt „Post da“, bis er geleert wurde.
-- **Pflanzen:** Eine Pflanze (plant.*) oder ein Feuchtesensor; unter dem eingestellten Wert (Standard 20 %) zeigt sie „Durst“.
+- **Mülltonnen:** Wähle unter **Abfallkalender oder Sensor** einen Kalender (z. B. von *Waste Collection Schedule*) oder einen Sensor. Aus einem Kalender sucht NeonPlan die Einträge nach den Wörtern der Abfallart heraus (Papier, Bio, Gelber Sack, PMD, GFT, Recycling … in vielen Sprachen); passt das nicht, trägst du ein eigenes **Stichwort** ein. Ein Sensor darf die Tage bis zur Abholung, ein Datum oder „morgen“/„in 3 Tagen“ melden. Der Kalender wird sechs Wochen im Voraus gelesen. Jede Tonne mit Termin trägt ein kleines **Schildchen** auf dem Deckel – „Heute“, „Morgen“, „in 3 Tagen“ – in heller Schrift auf dunklem Grund mit einem Rand in ihrer Farbe; heute und morgen stehen hervor. Stehen mehrere Tonnen beieinander, teilen sie sich **ein Schild** mit einer Zeile je Tonne in der Reihenfolge der Abholung; Schilder, die sich sonst verdecken würden, rücken nach oben. Die Schildchen (auch die von Briefkasten und Pflanzen) wachsen mit der **Symbolgröße** wie die Beschriftung der Pins und werden auch von weitem nicht winzig. Ein Tipp auf die Tonne zeigt die nächsten Termine. **Leuchten ab / bis** legt fest, ab wann am Vortag bis wann am Abholtag eine Tonne als „dran“ gilt (für alle Tonnen). In den Looks Tag und Blueprint behalten Tonnen und Pack-Möbel mit eigenen Farben (etwa ein Halloween-Kürbis) ihre Farbe bis zum Boden.
+  - **Nur die nächste Abholung beschriften:** Nur die Tonne(n) mit dem frühesten Termin tragen ein Schild. **Schilder erst … Tage vorher zeigen:** Ein Schild erscheint erst so viele Tage vor der Abholung (leer = immer, 0 = nur am Abholtag). Beide gelten für alle Tonnen; Tonnen ohne Schild stehen weiter in „Heute im Haushalt“ und zeigen beim Antippen ihre Termine. Ohne diese Einstellungen bleibt alles wie bisher.
+  - **Rausgestellt:** Optional ein Helfer (`input_boolean`), Schalter oder Binärsensor, der an ist, solange die Tonne draußen steht. Dann leuchtet die Tonne nicht mehr, ihr Schild sagt „rausgestellt ✓“ (grüner Rand), und in „Heute im Haushalt“ steht sie abgehakt. Ein Tipp auf die Tonne zeigt unter den Terminen **Als rausgestellt markieren** – das schaltet einen Helfer oder Schalter um. Typisch: eine Automation, die den Helfer jede Nacht (oder nach der Abholung) wieder ausschaltet.
+- **Briefkasten:** Ein **Sensor für Post** – ein Merker (z. B. ein input_boolean „Post da“ aus einer Automation) oder die Einwurfklappe – und optional der **Sensor der Entnahmetür**. Liegt Post drin, leuchtet der Briefkasten und zeigt „Post da“, bis er geleert wurde. Von weitem zeigt er statt der kleinen Schrift ein rundes **Briefsymbol**; die Schrift erscheint beim Heranzoomen.
+- **Pflanzen:** Eine Pflanze (plant.*) oder ein Feuchtesensor; unter dem eingestellten Wert (Standard 20 %) zeigt sie „Durst“ – von weitem als rundes **Pflanzensymbol**.
 - **Pinnwand:** Unter **⚙ Einstellungen → Haus → Pinnwand (Text-Helfer)** wählst du einen Text-Helfer (`input_text`) oder Sensor. Sein Text steht oben in „Heute im Haushalt“, mehrere Zeilen mit `|` getrennt – Automationen schreiben hinein („Paket für Alla liegt in der Garage“, „Morgen 10 Uhr kommt der Handwerker“), die Karte zeigt es.
-- **Waschmaschine, Trockner, Spüler:** Mit einem **Restzeit-Sensor** zeigt die Markierung „noch 23 min“; danach „Fertig!“, bis die Tür aufgeht (**Tür-Sensor**) oder das Gerät wieder läuft. „Fertig“ erkennt NeonPlan am Zustand des Geräts (finished, beendet …) oder daran, dass es zu laufen aufgehört hat.
-- **Wartung und Verbrauchsteile:** An jedem elektrischen Möbel kann ein Sensor für Filter, Salz oder Klarspüler stehen – ein Binärsensor (an = fällig), eine Zahl (Prozent oder Tage übrig, fällig ab dem eingestellten Wert) oder ein Datum. Fällig leuchtet das Gerät gelb.
+- **Waschmaschine, Trockner, Spüler:** Mit einem **Restzeit-Sensor** zeigt die Markierung „noch 23 min“; danach „Fertig!“, bis die Tür aufgeht (**Tür-Sensor**) oder das Gerät wieder läuft. „Fertig“ erkennt NeonPlan am Zustand des Geräts (finished, beendet …) oder daran, dass es zu laufen aufgehört hat. Die Restzeit steht nur da, solange das Gerät läuft: Sagt sein Zustand aus, bereit oder Standby oder liegt seine Leistung im Standby, zeigt NeonPlan keine Restzeit – auch wenn der Restzeit-Sensor (etwa nach einem Stromausfall) noch Minuten meldet.
+- **Wartung und Verbrauchsteile:** An jedem elektrischen Möbel kann ein Sensor für Filter, Salz oder Klarspüler stehen – ein Binärsensor (an = fällig), eine Zahl (Prozent oder Tage übrig, fällig ab dem eingestellten Wert) oder ein Datum. Fällig leuchtet das Gerät gelb. Sobald ein Sensor gewählt ist, gibt es eine **Zweite Wartung** mit eigenem Schwellwert – etwa beim Saugroboter Bürste am Roboter und Beutel der Station. Jede fällige steht als eigene Zeile in „Heute im Haushalt“.
 - **Kühlschrank:** Steht eine Tür länger offen als eingestellt (Standard 2 Minuten), warnt NeonPlan oben im Bild. Dazu gehört der **Smart-Kühlschrank** (Side-by-Side mit beweglichen Türen) in der Möbel-Bibliothek.
 - **Heute im Haushalt:** Eine Glaskarte oben rechts listet, was gerade ansteht – Tonnen heute und morgen, Post, fertige Geräte, durstige Pflanzen, fällige Wartung, offene Kühlschranktüren. Ein Tipp öffnet das Gerät, der Kopf klappt sie ein. In der Dashboard-Karte schaltet `household_card: false` sie ab.
 
@@ -1099,7 +1181,7 @@ Ein **Modul** ist ein Pack, das Code mitbringt: NeonPlan lädt ihn nach und läs
 2. **Installieren:** Hast du NeonPlan mit dem Shop verbunden (7.1), steht es unter Erweiterungen → **Alle installieren/aktualisieren** – ein Tipp. Ohne Verbindung lädst du die `.fp3dpack`-Datei aus dem Konto und spielst sie ein: **⚙ Einstellungen → 🧩 Module → Modul einspielen …** oder hier im Abschnitt **Module**.
 3. **Freigeben (seit 1.24):** Ein Modul läuft erst, wenn ein Administrator seinen Code gesehen und freigegeben hat. Im Abschnitt **Module** steht dann „wartet auf deine Freigabe“ – **Code ansehen & freigeben** zeigt Anbieter, Version, Größe, Fingerabdruck und den ganzen Code; **Freigeben** startet genau diesen Code, ohne Neustart.
 4. **Sehen:** Das Modul steht in beiden Listen als „Modul von Mastershort · v2“. Was es kann, steht in seiner Beschreibung im Shop; die Sätze eines Sprach-Moduls erscheinen sofort unter **🎙 Sprachsteuerung → Das versteht NeonPlan**, Warnungen eines Moduls in der Warnleiste, Karten über dem Haus.
-5. **Updates:** Kommt eine neue Fassung, holt der tägliche Shop-Check sie von selbst; ohne Shop-Verbindung spielst du die neue Datei ein. **Neuer Code läuft nie von allein:** Das Update wartet neben der laufenden Fassung („Update auf v4 wartet auf deine Freigabe“), bis du es mit **Update ansehen & freigeben** bestätigst. Bis dahin läuft die alte Fassung weiter. Möbel- und Funktions-Packs ohne Code aktualisieren sich wie bisher.
+5. **Updates:** Kommt eine neue Fassung, holt der tägliche Shop-Check sie von selbst; ohne Shop-Verbindung spielst du die neue Datei ein. **Neuer Code läuft nie von allein:** Das Update wartet neben der laufenden Fassung („Update auf v4 wartet auf deine Freigabe“), bis du es mit **Update ansehen & freigeben** bestätigst. Bis dahin läuft die alte Fassung weiter. Seit 2.0.6 zeigt auch die Shop-Liste so ein wartendes Update mit dem Knopf **Update ansehen & freigeben**, statt es noch einmal zum Aktualisieren anzubieten. Möbel- und Funktions-Packs ohne Code aktualisieren sich wie bisher.
 6. **Entfernen:** In der Liste **Entfernen**, wie bei einem Pack. Dein Plan bleibt unberührt.
 
 Sicherheit: Ein Modul läuft nur mit gültiger Signatur und auf der Installation, für die es gekauft wurde. Du kannst den Code in der Datei lesen (er ist nicht verschleiert), aber nicht weitergeben – dafür gilt die Elastic License 2.0.
@@ -1113,7 +1195,7 @@ Module heute:
 | Modul | Was es tut | Preis |
 |---|---|---|
 | **Das Haus antwortet** | beantwortet gesprochene Fragen – „Was ist offen?“, „Wie ist das Wetter?“, „Guten Morgen“ … (5.10) | kostenlos |
-| **Fenster-Wächter** | warnt, wenn ein Fenster bei Kälte (unter 12 °C draußen) länger als 20 Minuten offen steht oder die Heizung bei offenem Fenster läuft (10 Minuten): Der Raum pulst, die Warnleiste nennt Fenster und Zeit; „Welche Fenster sind zu lange offen?“ fliegt sie ab | kostenlos |
+| **Fenster-Wächter** | warnt, wenn ein Fenster bei Kälte (unter 12 °C draußen) länger als 20 Minuten offen steht oder die Heizung bei offenem Fenster läuft (10 Minuten): Der Raum pulst, die Warnleiste nennt Fenster und Zeit; „Welche Fenster sind zu lange offen?“ fliegt sie ab. Ruhe in der Nacht (ab Release 3): Legst du in Home Assistant einen Helfer (Schalter) `input_boolean.fensterwaechter_ruhe` an, warnt er nicht, solange der an ist – etwa per Automation nachts oder wenn die Rollläden unten sind | kostenlos |
 
 ## 8. Die Dashboard-Karte
 
@@ -1197,7 +1279,7 @@ idle_orbit: false
 NeonPlan 3D ist für Wandtablets wie das Amazon Fire gebaut:
 
 - **Kein Rechnen im Leerlauf.** Ändert sich nichts, zeichnet die Ansicht kein einziges Bild. Die FPS-Anzeige zeigt dann „Ruhe (0 B/s)“.
-- **Qualitätsstufe Tablet:** Auf Fire-Tablets wählt „Auto“ sie von selbst. Muster, Schatten, Halos und Partikel fallen weg, Animationen laufen mit halber Rate.
+- **Qualitätsstufe Tablet:** Auf Fire-Tablets wählt „Auto“ sie von selbst. Muster, Schatten, Halos und Partikel fallen weg. Bewegte Deko (Energiefluss, Solarfelder, Klangringe, Poolwasser, Saugroboter, Farbeffekte, Haustiere) läuft mit etwa 5 Bildern pro Sekunde und bleibt 30 Sekunden nach der letzten Berührung stehen; Antippen oder etwas, das neu losläuft, weckt sie wieder. Reine Messwerte (Watt, Temperatur) erscheinen höchstens alle 2 Sekunden, Schalter, Türen und Alarme sofort.
 - **Kiosk-Optionen der Karte:** Nach einigen Minuten ohne Berührung kehrt die Karte zur Startansicht zurück. Nachts dimmt sie nach Sonnenstand oder Uhrzeit. Als Bildschirmschoner dreht sich das Haus langsam.
 - **Warnungen** springen auf Wunsch von selbst in den betroffenen Raum.
 - Hochkant erscheint das Raumfenster unten.
@@ -1235,6 +1317,11 @@ Das normale Backup von Home Assistant sichert NeonPlan 3D ebenfalls vollständig
 - NeonPlan 3D verbindet sich nur dann mit dem Internet, wenn du einen Lizenzschlüssel einträgst. Dann fragt es einmal am Tag bei mastershort.de nach Updates und sendet dabei den Schlüssel und die anonyme Installations-Kennung.
 - Kamerabilder, Verlaufsdaten und Zustände bleiben in Home Assistant und werden nur im Browser angezeigt.
 - Die Zeitreise liest den Verlauf aus dem Recorder von Home Assistant, nur für die Geräte des Plans. Personen und ihre Tracker liest sie nie.
+- Die **Ortung** wertet die Bluetooth-Signale nur in Home Assistant aus. Nichts darüber, wer wo ist, verlässt dein Haus.
+- **Hilf mit, NeonPlan besser zu machen (freiwillig, standardmäßig aus):** Unter **⚙ Einstellungen → 🛟 Hilf mit** kannst du anonyme Nutzungs- und Fehlerberichte einschalten. Wer sie noch nicht eingeschaltet hat, bekommt als Admin im Editor einmal einen Hinweis; **Ansehen** öffnet die Einstellung, **Nicht jetzt** blendet ihn auf diesem Gerät für immer aus. Dann geht höchstens einmal am Tag ein Bericht (und höchstens einmal pro Stunde ein Bündel Fehlermeldungen) an api.mastershort.de.
+  - **Gesendet wird:** eine zufällige Kennung (nicht die von Home Assistant, sie entsteht beim Einschalten), die Versionen von NeonPlan, Home Assistant und Python, die Sprache, die installierten Packs und Pro-Erweiterungen, Anzahlen aus dem Plan (Etagen, Räume, Möbel, verknüpfte Geräte, Kameras), Geräteart, Browser und System der Bildschirme mit Bildrate und Grafikklasse, wie oft welche Ansicht geöffnet wurde, und Fehlermeldungen von NeonPlan ohne Namen und Adressen.
+  - **Nie gesendet werden:** Namen, Entitäten, Bereiche, die Form deines Grundrisses, IP-Adressen, die Kennung deiner Home-Assistant-Installation, Benutzernamen, dein Lizenzschlüssel – und nichts aus der Ortung.
+  - **„Bericht ansehen“** zeigt genau den nächsten Bericht, bevor er gesendet wird. **„Daten löschen“** entfernt alles, was schon gesendet wurde. Ausschalten vergisst die Kennung.
 
 ---
 

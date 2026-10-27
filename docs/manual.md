@@ -167,7 +167,7 @@ A selected room shows on the right:
 
 Walls are created automatically: every shared edge of two rooms becomes an interior wall, every outer edge an exterior wall. Corners and T-junctions are mitred. You set the thicknesses under **Settings**.
 
-**Single walls:** The **Wall** tool draws a free-standing wall, e.g. a partition that runs through half a room. **Shift** keeps it straight, **Alt** draws without snapping. Where it meets a room wall, the corner is mitred. When selected, drag the handles to move its ends or the line to move the whole wall. On the right you set **X** and **Y** (the middle of the wall, as with furniture; so you place it to the centimetre, off the grid), **Length**, **Wall thickness** and **Height**. In 3D it behaves like any interior wall. You can put doors and windows into single walls too, with **Doors & windows** (see 4.7). Deleting the wall removes its doors and windows as well.
+**Single walls:** The **Wall** tool draws a free-standing wall, e.g. a partition that runs through half a room. **Shift** keeps it straight, **Alt** draws without snapping. Where it meets a room wall, the corner is mitred. When selected, drag the handles to move its ends or the line to move the whole wall. On the right you set **X** and **Y** (the middle of the wall, as with furniture; so you place it to the centimetre, off the grid), **Length**, **Wall thickness** and **Height**. In 3D it behaves like any interior wall. With rooms on one side only (a single wall drawn as an outer wall), the other side counts as outside: blinds and sills sit there whichever way the wall was drawn, and it turns to glass like the other outer walls when it faces the camera. You can put doors and windows into single walls too, with **Doors & windows** (see 4.7). Deleting the wall removes its doors and windows as well.
 
 **Wall height:** Any wall can be lower than the room, e.g. a parapet or a counter. For a single wall you set its **Height** in the form. For rooms (rectangle and free shape) select the room; the form shows the **Wall heights** box with every wall of the room, named by its corners (e.g. "Wall 2–3", the numbers are shown at the corners in the plan) and with its length. Hovering a row or tapping its field lights the wall up in the plan. ↥ resets it to full room height. If two rooms share the wall, the lower setting applies. Windows and doors in a low wall end at the wall height. Low walls look lighter in the plan. If one wall in line should have two heights (2.5 m next to 1.7 m), split it with **✂**: the part gets a row and a height of its own, the split point can be moved in **Split point from corner** (marked by a tick in the plan), **⨉** joins the parts again.
 
@@ -225,11 +225,12 @@ Where two rooms meet without a wall (an open transition) and the outer wall carr
 Every opening has:
 
 - **Width**, **sill** and **height**, plus the hinge side. With **Select** you slide it along the wall.
-- **Sill** (windows only): *automatic* (default) draws a window board inside and a sill outside from a sill height of 30 cm – except for a window that sits directly on another window or a door of the same wall (transom light, fixed upper part, a glass front split in two): that one gets none of its own. *None*, *inside only* or *outside only* fix it, e.g. for a glass front without a board or a window above a kitchen worktop.
+- **Sill** (windows only): *automatic* (default) draws a window board inside and a sill outside from a sill height of 30 cm – except for a window that sits directly on another window or a door of the same wall (transom light, fixed upper part, a glass front split in two): that one gets none of its own. *None*, *inside only* or *outside only* fix it, e.g. for a glass front without a board or a window above a kitchen worktop. Chosen by hand it also shows on a window down to the floor or a terrace door (lying at the floor) and on a glass wall, which has none by itself.
 - **Style:** room door, front door, front door with glass, with one or two sidelights, glass door, sliding door or **Opening (no door)**. With sidelights you set their **width** below (empty = automatic), with two the left and the right one separately; a single sidelight sits opposite the hinge, or next to the hinges with **Sidelight on the hinge side**. An opening is just a gap in the wall, without frame and leaf; light always passes through. Windows come as standard or with glazing bars. "Automatic" picks a front door for exterior doors.
 - **Leaves:** single or double, with an own contact for the second leaf.
 - **Highlight in 3D:** *When open* (default) makes open windows and doors glow warm. *When closed* turns this round, e.g. for the WC or a child's room door: it glows while it is shut. This needs a contact; without a sensor nothing is highlighted.
 - **Show closed without a sensor:** a door without a contact stands half open in 3D, so it is seen as a door. The checkbox draws it closed, e.g. for a front door or a carport without a sensor.
+- **Opening angle (since 2.0.6):** how far the leaf stands open: **Default**, 15°, 30°, 45°, 60° or 90°. Without a sensor the door always stands that far open, with one it opens that far as soon as the sensor reports "open". **Default** stays as before: half open without a sensor, fully open with one.
 - **Smart lock:** the door's lock (Nuki, Aqara, `lock.*`). A pin stands at the door in 3D: 🔒 locked, glowing red while it is unlocked; a tap locks or unlocks. A tap on the door itself (without a drive) also opens its menu with **Lock** or **Unlock**, always asking first; while the lock is unlocked, the leaf's free edge glows softly in the accent colour – whatever the door contact says. On a double door or terrace door the pin sits on the main leaf (on the hinge side). The voice asks it ("Is the front door locked?").
 - **Invert contact:** for sensors that report open and closed the other way round. NeonPlan then shows open when the sensor reports closed, and vice versa (default: off).
 
@@ -244,7 +245,7 @@ Doors and windows can also be tapped in a wide band around the opening in the pl
 | **Cover** | The blind moves in front of the window – or of a door (front door, French window, sliding door) – with the cover's position |
 | **Position sensor** | For blinds whose position comes from a separate sensor, e.g. Homematic. Can be inverted |
 | **Ask before switching** | Open, close and positions ask first in the quick menu and the room panel, and a swipe on the marker no longer moves the blind (it turns the view instead). Stop never asks. Good for tablets where blinds or the garage door would otherwise move by accident |
-| **Contact** | The door swings open, the window opens |
+| **Contact** | The door swings open, the window opens. Offered are binary sensors of the door, window or opening class and ones without a class (KNX, enOcean, template sensors often have none) |
 | **Tilt contact** | A second sensor that reports "tilted" |
 | **Tilt angle sensor** | Optional: a sensor reporting the tilt angle in degrees (e.g. the "Rotation" of a Shelly BLU Door/Window). The sash tilts exactly that far in 3D; **Angle that counts as fully tilted** (15° by default), an **Offset** for the value while closed and **counts the other way round** adapt it to the mounting. Above a small angle the window counts as tilted, also for the rain warning |
 | **Contact second leaf** | For double windows and doors |
@@ -436,6 +437,7 @@ A simple house gets a flat or gable roof over the whole top floor under **Build 
 - Each section has a **shape** – gable, hip, half-hip (a gable hipped at the top), pyramid (four slopes to a point), mansard (steep below, flatter above), pent, flat and parapet (a flat roof with a wall ring) – and a **ridge direction** (↔ or ↕).
 - For gable, hip and half-hip, **End left/right** (or **top/bottom**) sets each end of the ridge on its own to a gable, a hip or a half-hip – a hip roof with an upright gable at the other end, for example. **as the shape** leaves the end as the shape has it.
 - **Eave** and **pitch** are set for both sides separately. All heights count from the ground. A side with a lower eave reaches further down, e.g. a catslide over a low extension. A pent roof rises from the first side; **Swap sides** turns it round.
+- **Turn:** if an extension or wing stands at an angle to the house, turn its section with **Turn** (or ↺ 15° / ↻ 15°), clockwise. Dormers and cross gables on it turn along, roof windows and solar fields stay on it. A turned section is moved by dragging; the corners for resizing come back at 0° (turn back, resize, turn again). Where a turned wing runs into another roof, that roof's slopes cut it off. By default every section stays at 0°.
 - **Top of walls** is the height where the walls below the roof end. A new section takes it from the rooms below, whatever floor the plan shows. Gables and knee walls are built from there up under the roof, so the space under a pent roof is closed too.
 - **Sits on floor** shows which floor the section belongs to in the 3D view and puts it on another floor's wall tops – top of walls and eaves move along. This helps when a new section landed on the wrong floor, e.g. over an upper floor with a stairwell in the middle.
 - **Flat roof as a free shape:** a flat roof has the button **Take the floor's outline** – the surface takes the outline of the shown floor's rooms (L- or Z-shaped too), one surface without seams instead of several rectangles. The corners can be dragged in the plan afterwards; **Back to the rectangle** drops the shape.
@@ -606,7 +608,7 @@ Each device remembers these switches.
 
 - **Tap** switches lamps and switches. The lamp flashes briefly to confirm.
 - **Swipe up or down** on a lamp dims it; on a blind or window it moves the blind. The value appears at your finger. Devices and windows with "Ask before switching" do not react to a swipe.
-- **Long press** opens the quick menu: brightness, colour temperature and colours for lights; up, stop, down and fixed positions for blinds. Venetian blinds and Raffstores get a **Slats** slider there and in the room panel (or slats open/closed) as soon as the entity supports it.
+- **Long press** opens the quick menu: brightness, colour temperature and colours for lights; up, stop, down and fixed positions for blinds. Venetian blinds and Raffstores get a **Slats** slider there and in the room panel (or slats open/closed) as soon as the entity supports it. Roller shutters, garage doors and curtains only get them when they report a slat position (some integrations such as KNX announce slat buttons for roller shutters, too).
 - Tap a **window** – frame, glass or blind – to open the blind menu or show the contact.
 - **Double tap a room** switches all its lights on or off. Devices with "Ask before switching" stay out.
 - TVs, doors and garage doors can be tapped directly as well.
@@ -668,6 +670,8 @@ NeonPlan 3D warns for free and without setup:
 The room pulses red and a banner appears at the top. A tap on the warning jumps into the room. The rain warning uses the weather entity from the plan settings and can be switched off there on its own under **Warning: window open while it rains**. A single window that may stay open in the rain (under a canopy, say) gets the tick **No rain warning** in its form. With a weather station of your own, choose its rain sensor (on = rain) or rain rate (mm/h) under **Rain from your own weather station**: then what counts is whether it really rains at the house – for the warning and, with Weather outside, for the rain in 3D.
 
 On a wall tablet the banner can get long: "Guest WC · Window open in the rain: Guest bathroom window". Switch off **Show device names in warnings** in the plan settings, and it reads "Guest WC · Window open in the rain". A warning without a room keeps the device name.
+
+**Contact unavailable (since 2.0.6, off by default):** when a window or door contact has been "unavailable" for 10 minutes (empty battery, out of radio reach), the window looks shut in 3D although nobody knows. Switch on **Warn when a window or door contact is unavailable** in the settings under **Weather & warnings**, and a warning names the contact. A short gap while Home Assistant restarts does not warn.
 
 ### 5.9 Cameras in 3D
 
@@ -762,6 +766,84 @@ data:
 - The microphone is **only open while you speak**. It does not listen all the time, so there is no wake word. That also spares old tablets.
 - Speech to text is done by **your** Assist pipeline, so how fast and accurate it is depends on that pipeline. With Speech-to-Phrase or the cloud a sentence usually takes one to two seconds.
 - If the live director is on, it does not interrupt you while you speak.
+
+### 5.11 Locating (new)
+
+> **New in 2.0, free.** Who and what is where in the house – without Bermuda, without ESPresense, without new hardware. NeonPlan uses the Bluetooth scanners Home Assistant already knows.
+
+NeonPlan shows which room you are in right now – and where your iPhone or your keys are. People stand as a glowing figure in the room and glide over when they change rooms. Every device gets a sensor in Home Assistant ("Torsten's watch room: Kitchen"), and by voice you ask "Where is my iPhone?".
+
+**What you need:**
+
+- **Bluetooth scanners in Home Assistant** – what you already have is enough:
+  - **Shelly** Gen2 and Gen3 (plugs, in-wall). In the Shelly device set **Configure → Bluetooth scanning** to **passive**.
+  - **ESPHome Bluetooth proxies** (an ESP32 for a few euros). They report more often than Shellys, so room changes arrive faster.
+  - the Bluetooth adapter of the Home Assistant machine.
+
+  About one scanner per room is ideal. Rooms without a scanner of their own (hall, guest toilet) are still recognised: learning remembers how they look to the scanners in the rooms next door.
+- **Something you carry:**
+  - **Apple Watch and iPhone** with their key (IRK) – the key helper reads it in three minutes (see below). The watch on the wrist is ideal: an iPhone in a pocket goes quiet about a minute after its screen turns off.
+  - **Android phones:** in the Home Assistant app switch on **Settings → Companion app → Manage sensors → BLE Transmitter**. No key needed. Set the **transmit power to "High"** and the **advertise mode to "Low latency"** there: out of the box the app sends so weakly that the scanners barely hear it. NeonPlan then finds the phone by itself and shows a hint when a setting is too weak.
+  - **Pairing Android through the key helper does not help:** Android does not send this key in the background, so the device stays "not heard".
+  - **Key tags** with a fixed address or as an iBeacon (e.g. Nut, Tile, iBeacon tags). **AirTags do not work** – they change their address, and Apple gives no key.
+
+**Setting up** (editor → **⚙ Settings → 📡 Locating**, admins only):
+
+1. **Scanners:** NeonPlan lists all Bluetooth scanners of Home Assistant and suggests their room – from the device's Home Assistant area, a pin or a piece of furniture in the plan (the washing machine with the Shelly plug's power sensor) or the name ("PC office plug"). After learning NeonPlan knows from the signals where each scanner stands and offers **"Signals say: … – use it"** when they disagree.
+2. **Devices:** the watch and the iPhone through the **🔑 Key helper**, Android phones appear by themselves under **📱 Android with the Home Assistant app**, key tags through **📱 Add an Android phone or a key tag** (hold the device right next to a scanner). When no scanner hears a device right now, it says **⚠ not heard**; a key you already have goes in under **🔑 Paste a key you already have**. Give every device a name, a person and – for "ring my iPhone" – the phone's Home Assistant app.
+3. **Learning:** tick the devices you are **carrying**. Go into every room, tap it and walk around slowly for **90 seconds**, into the corners and along the walls. Keep a phone in your **pocket** (screen off), as in everyday life – best tap with another tablet or phone. **Learning once is enough:** devices without learning of their own use the others'. The countdown runs; at 0 the room is done (✓). **Check accuracy** then shows how surely each room is recognised. Simply learn a weak room again.
+4. **Live:** switch locating on and walk through the house – the list shows at once where NeonPlan sees you.
+
+**In the 3D view:**
+
+- **A person's watch and phone:** what is worn on the body (watch, band – tick **⌚ worn**, already set for "watch" in the name) tells where the person stands while it was heard in the last two minutes; otherwise the device heard last. When the watch and the phone are heard at the same time in different rooms (typically at a shared wall), the phone only wins when it is clearly surer (by more than 15 percentage points). A phone left lying in another room while you walked on with the watch shows there as a small symbol of its own. **Presence sensors with zones** (such as an Aqara FP2): when a zone named like a piece of furniture in the room ("Sofa", "Armchair", "Dining table", "Bed", or the furniture's own name) reports someone there, the figure stands at that furniture instead of in the middle of the room. A zone at a door ("Entrance hall", "Terrace door") puts the figure in front of the door to the room of that name, or of a door to the outside; "rest of the room" keeps the middle. The sensor belongs to the room by its Home Assistant area. The other way round too: a watch that has lain in one room for ten minutes while the phone changed rooms after it counts as taken off – the phone then tells where the person is, and the watch stands as a symbol where it lies.
+- People stand as a **glowing figure** in their colour in the room, with the name above. Things (keys, an iPhone without a person) are small round symbols. A tap shows the room, the certainty and since when.
+- In the assistant under **4 · Live → People in 3D**: **figure, pin or off** – once for the whole house.
+- The **room panel** shows under its name who is here now, and the floors count the people.
+- **Show people to admins only** (in the Live step) hides them from all other users.
+
+**Faster with presence sensors:** motion and presence sensors (radar like the Aqara FP2 too) that belong to an area in Home Assistant speed locating up by themselves: Bluetooth tells **who** it is, the sensor tells **when** someone enters the room. Without sensors a room change takes two to five seconds – with one often just a moment.
+
+**Voice** (with the Assist sentences under **⚙ Settings → Voice control**): "Where is my iPhone?", "Where is Torsten?", "Who is home?", "Ring my iPhone". The answer comes straight from Home Assistant – even without an open NeonPlan screen. Open NeonPlan views fly into the room of the answer, on "Who is home?" into every room with someone in it, one after another (a tap stops it). Switch it off in the locating assistant under **Live**; while people are shown to admins only, only admins' views fly to them. "Where is Anna?" with the names locating knows is understood by Assist even when an AI agent (such as Gemini) answers everything else. Ringing sends a loud notification to the Home Assistant app (on an iPhone a critical alert that rings in silent mode too).
+
+**For automations:** every device has a sensor, e.g. `sensor.torstens_watch_room`. Its state is the room name; the attributes are `room_id`, `area_id` (the room's Home Assistant area), `floor`, `probability` (certainty 0–1), `since` and `last_seen`. Example – the light follows you:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: sensor.torstens_watch_room
+    to: Kitchen
+actions:
+  - action: light.turn_on
+    target:
+      area_id: kitchen
+```
+
+**How fast a room change shows:** usually after **two to five seconds**. That comes from the scanners, not from NeonPlan: a **Shelly** passes a device on only about **every three to four seconds**, an **ESP32 Bluetooth proxy about every second**. Watches send once or twice a second, an iPhone in a pocket much less often. NeonPlan also waits for two or three readings so the view does not jump between two rooms. It gets faster with **ESP32 proxies** instead of Shellys – and with **presence sensors**, then almost at once.
+
+**Where scanners work best:**
+
+- **In a corner or on an outside wall of the room – not on the wall to the next room.** A plug right behind the wall hears you in the next room almost as loudly as in its own; then the view jumps between the two. (Example: you sit in the kitchen, and the living room's Shelly is plugged in right behind you in the shared wall.)
+- **Not back to back:** two scanners on both sides of the same wall make the two rooms hard to tell apart.
+- **In the open, not hidden:** not behind a fridge, radiator or mirror or in a metal cabinet – metal and water swallow Bluetooth.
+- **About one per room.** Rooms without a scanner of their own still work; large or angled rooms gain from a second one.
+- After moving a scanner, learn the rooms around it again briefly.
+
+**Good to know:**
+
+- **Room-level, not to the centimetre.** Bluetooth wavers (your own body damps the signal). NeonPlan reliably tells the room, not the spot in it.
+- **Everything stays in the house.** The signals are only evaluated in Home Assistant, nothing goes to the internet.
+- **Learn again** when you move scanners or add new ones.
+- **Using Bermuda or ESPresense?** NeonPlan runs alongside and does not disturb them. Just set your devices up here; once everything works, switch your automations to the new sensors and remove the old tools.
+
+**Getting the key (IRK) of an iPhone or Apple Watch:** the easiest way is the **NeonPlan key helper** – no Mac needed, the Apple Watch too:
+
+1. Plug an **ESP32** (ESP32, ESP32-C3 or ESP32-S3, about 5 €) into the computer and click **Install** on [neonplan3d.mastershort.de/keys](https://neonplan3d.mastershort.de/keys/) with Chrome or Edge. Then enter your Wi-Fi.
+2. Home Assistant finds **NeonPlan Key** as an ESPHome device: **Settings → Devices & services → Discovered → Add**.
+3. In the assistant under **Devices → 🔑 Key helper** pick "For an Apple Watch" or "For an iPhone" and pair: on the watch tap "NeonPlan Key" under **Settings → Bluetooth → Health devices**, on the phone under **Settings → Bluetooth**. The key appears at once – tap **Add**. Afterwards remove "NeonPlan Key" from the Bluetooth settings again.
+4. **More devices:** tap **🔄 Next device** first – the helper gets a new Bluetooth identity, so the device paired before does not connect in between.
+
+You can reuse the ESP32 afterwards, best as an ESPHome Bluetooth proxy – it then even makes locating faster. The helper is built on [irk-capture](https://github.com/DerekSeaman/irk-capture) by Derek Seaman (MIT licence) – thank you! Another way: with a **Mac** through Keychain Access (the Mac must be on the same iCloud account). Then paste the key in the assistant under **Devices → Paste a key** (as 32 characters or the way the Mac shows it).
 
 ---
 
@@ -877,7 +959,7 @@ Also without a solar system: every device with a power sensor (TV, washing machi
 
 The **Holograms** button in the energy bar (next to ⚡) hides all cards and shows them again – handy when many devices carry one. The card has the button too, or you fix it with `holograms`.
 
-**Wall tablet:** on the tablet level the holograms run without the glass effect and the cables at half the frame rate.
+**Wall tablet:** on the tablet level the holograms run without the glass effect and the cables at about 5 frames a second; 30 seconds after the last touch they stand still until someone taps again.
 
 **When something is missing:** the Setup list at the top of the tool shows what does not fit yet. No hologram usually means: no sensor on the inverter, or not the house view (floor and room views have none). No cable to a device: the device has no power sensor.
 
@@ -895,7 +977,7 @@ Sound & Cinema brings the music into the 3D house. It needs a speaker in the pla
 
 **Smart speakers and displays:** from release 2 the **Home Cinema & Hi-Fi** pack has smart speakers as a ball, cylinder, puck, pod, tall and oval, a compact and a portable multiroom speaker, a premium soundbar and smart displays of 5″, 7″, 8″ and 15″ (wall) – fitting Echo, Nest, HomePod, Sonos and co. With Sound & Cinema their light ring glows in the app's colour while they play, and the displays show the cover. While the card floats over a speaker, its pin steps aside and comes back when the music ends. TVs and screens keep their colours and pictures through **Live screens** (6.3).
 
-**Wall tablet:** on the tablet level the rings run at half the frame rate, the cards without the glass effect.
+**Wall tablet:** on the tablet level the rings run at about 5 frames a second and rest 30 seconds after the last touch, the cards without the glass effect.
 
 **Which speakers fit?** NeonPlan uses Home Assistant's standard media player interface: what works in Home Assistant's media player dialog works here too. This is an assessment from documentation and experience, not a guarantee for every model:
 
@@ -994,20 +1076,20 @@ Not included are camera pictures (the recorder keeps none) and people and their 
 
 **Requirements:** Home Assistant's recorder (it runs by default) and Home Assistant restarted once after the update. How far back the history reaches is set by the recorder's `purge_keep_days` (default 10 days); time travel needs 24 hours of it, the whole week at least 7 days. If you want the week, keep `purge_keep_days` at 7 or more.
 
-### 6.8 Household Pro (beta)
+### 6.8 Household Pro
 
-> **Beta, first for supporters:** Household Pro is tested by supporters first (it comes with the [Supporter Pass](https://mastershort.de/en/neonplan3d/supporters/)). Feedback is welcome on Discord in **#beta-feedback** or on GitHub.
+> Household Pro is in the [shop](https://mastershort.de/en/neonplan3d/); it comes with the [Supporter Pass](https://mastershort.de/en/neonplan3d/supporters/). Thanks to everyone who tested it in the beta.
 
 Household Pro shows what is due in the household, right where it happens. The waste bins and mailboxes themselves are for everyone (chapter 4.23); Household Pro brings them and other appliances to life. Its fields are in the item's form under **🏠 Household Pro**.
 
-- **Waste bins:** under **Waste calendar or sensor** pick a calendar (e.g. from *Waste Collection Schedule*) or a sensor. In a calendar NeonPlan finds the entries by the words of the bin's waste (paper, food, packaging, PMD, recycling … in many languages); if that does not fit, enter a **word** of your own. A sensor may report the days to the pickup, a date or "tomorrow"/"in 3 days". Every bin with a pickup wears a small **tag** on its lid – "Today", "Tomorrow", "in 3 days" – in its colour; today and tomorrow stand out. The tags (the mailbox's and the plants' too) grow with the **Symbol size** like the pins' labels. A tap on the bin shows its next pickups. **Glow from / until** sets from when the day before until when on pickup day a bin counts as due (for all bins).
-
-- **Waste bins:** under **Waste calendar or sensor** pick a calendar (e.g. from *Waste Collection Schedule*) or a sensor. In a calendar NeonPlan finds the entries by the words of the bin's waste (paper, food, packaging, PMD, recycling … in many languages); if that does not fit, enter a **word** of your own. A sensor may report the days to the pickup, a date or "tomorrow"/"in 3 days". Every bin with a pickup wears a small **tag** on its lid – "Today", "Tomorrow", "in 3 days" – in its colour; today and tomorrow stand out. A tap on the bin shows its next pickups. **Glow from / until** sets from when the day before until when on pickup day a bin counts as due (for all bins). In the Day and Blueprint looks, bins and pack furniture with colours of their own (a Halloween pumpkin, say) keep their colour down to the ground.
-- **Mailbox:** a **post sensor** – a flag (e.g. an input_boolean "post" set by an automation) or the letter flap – and optionally the **sensor of the emptying door**. While post is in it, the mailbox glows and shows "Post" until it is emptied.
-- **Plants:** a plant (plant.*) or a moisture sensor; below the set value (default 20 %) it shows "Thirsty".
+- **Waste bins:** under **Waste calendar or sensor** pick a calendar (e.g. from *Waste Collection Schedule*) or a sensor. In a calendar NeonPlan finds the entries by the words of the bin's waste (paper, food, packaging, PMD, recycling … in many languages); if that does not fit, enter a **word** of your own. A sensor may report the days to the pickup, a date or "tomorrow"/"in 3 days". The calendar is read six weeks ahead. Every bin with a pickup wears a small **tag** on its lid – "Today", "Tomorrow", "in 3 days" – in light letters on a dark plate with an edge in its colour; today and tomorrow stand out. Bins standing together share **one tag** with a line per bin in pickup order; tags that would cover each other move up. The tags (the mailbox's and the plants' too) grow with the **Symbol size** like the pins' labels and never shrink to unreadable from afar. A tap on the bin shows its next pickups. **Glow from / until** sets from when the day before until when on pickup day a bin counts as due (for all bins). In the Day and Blueprint looks, bins and pack furniture with colours of their own (a Halloween pumpkin, say) keep their colour down to the ground.
+  - **Label only the next pickup:** only the bin(s) with the earliest pickup wear a tag. **Show tags only … days before:** a tag appears only that many days before the pickup (empty = always, 0 = on pickup day only). Both apply to all bins; bins without a tag still show in "Today in the household" and show their pickups when tapped. Without these settings everything stays as before.
+  - **Put out:** optionally a helper (`input_boolean`), switch or binary sensor that is on while the bin stands outside. The bin then stops glowing, its tag says "put out ✓" (green edge) and "Today in the household" ticks it off. A tap on the bin shows **Mark as put out** below its pickups – it switches a helper or switch. Typical: an automation that switches the helper off again every night (or after the pickup).
+- **Mailbox:** a **post sensor** – a flag (e.g. an input_boolean "post" set by an automation) or the letter flap – and optionally the **sensor of the emptying door**. While post is in it, the mailbox glows and shows "Post" until it is emptied. From afar it shows a round **letter symbol** instead of the small text; the text appears when you zoom in.
+- **Plants:** a plant (plant.*) or a moisture sensor; below the set value (default 20 %) it shows "Thirsty" – from afar as a round **plant symbol**.
 - **Pinboard:** under **⚙ Settings → House → Pinboard (text helper)** pick a text helper (`input_text`) or sensor. Its text stands at the top of "Today in the household", several lines separated by `|` – automations write into it ("parcel for Alla is in the garage", "plumber tomorrow at 10"), the card shows it.
-- **Washer, dryer, dishwasher:** with a **time-left sensor** the pin shows "23 min left"; afterwards "Done!" until the door opens (**door sensor**) or it runs again. NeonPlan tells "done" from the appliance's state (finished, done …) or from it having stopped running.
-- **Service and consumables:** any electric item can have a sensor for a filter, salt or rinse aid – a binary sensor (on = due), a number (percent or days left, due at the set value) or a date. When due the item glows yellow.
+- **Washer, dryer, dishwasher:** with a **time-left sensor** the pin shows "23 min left"; afterwards "Done!" until the door opens (**door sensor**) or it runs again. NeonPlan tells "done" from the appliance's state (finished, done …) or from it having stopped running. The time left shows only while the appliance runs: when its state says off, ready or standby, or its power is at standby, NeonPlan shows no time left – even if the time-left sensor still reports minutes (after a power cut, say).
+- **Service and consumables:** any electric item can have a sensor for a filter, salt or rinse aid – a binary sensor (on = due), a number (percent or days left, due at the set value) or a date. When due the item glows yellow. Once a sensor is chosen there is a **Second service** with its own threshold – a robot vacuum's brush and its dock's dust bag, say. Each one due is a line of its own in "Today in the household".
 - **Fridge:** when a door stands open longer than set (default 2 minutes), NeonPlan warns at the top of the view. The **smart fridge** (side-by-side with moving doors) in the furniture library comes with it.
 - **Today in the household:** a glass card at the top right lists what is due – bins today and tomorrow, post, finished appliances, thirsty plants, services due, open fridge doors. A tap opens the device, its header folds it. In the dashboard card `household_card: false` switches it off.
 
@@ -1099,7 +1181,7 @@ A **module** is a pack that carries code: NeonPlan loads it and runs it in the h
 2. **Install it:** with NeonPlan connected to the shop (7.1) it stands under Extensions → **Install/update all** – one tap. Without the connection download the `.fp3dpack` file from the account and import it: **⚙ Settings → 🧩 Modules → Import a module …** or here in the **Modules** section.
 3. **Approve it (since 1.24):** a module runs only once an administrator has seen and approved its code. The **Modules** section then says "waits for your approval" – **View code & approve** shows the publisher, version, size, fingerprint and the whole code; **Approve** starts exactly this code, without a restart.
 4. **See it:** the module stands in both lists as "Module by Mastershort · v2". What it does is in its shop description; the sentences of a voice module show at once under **🎙 Voice control → What NeonPlan understands**, a module's warnings in the warning bar, its cards over the house.
-5. **Updates:** a new release is fetched by the daily shop check by itself; without the connection import the new file. **New code never runs by itself:** the update waits beside the running release ("Update to v4 waits for your approval") until you confirm it with **View update & approve**. Until then the old release keeps running. Furniture and feature packs without code update as before.
+5. **Updates:** a new release is fetched by the daily shop check by itself; without the connection import the new file. **New code never runs by itself:** the update waits beside the running release ("Update to v4 waits for your approval") until you confirm it with **View update & approve**. Until then the old release keeps running. Since 2.0.6 the shop list shows such a waiting update with the **View update & approve** button too, instead of offering it for updating again. Furniture and feature packs without code update as before.
 6. **Remove:** **Remove** in the list, like a pack. Your plan stays untouched.
 
 Security: a module runs only with a valid signature and on the installation it was bought for. You can read the code in the file (it is not obfuscated) but not pass it on – the Elastic License 2.0 applies.
@@ -1113,7 +1195,7 @@ Modules today:
 | Module | What it does | Price |
 |---|---|---|
 | **The house answers** | answers spoken questions – "What is open?", "What is the weather like?", "Good morning" … (5.10) | free |
-| **Window watch** | warns when a window has been open in the cold (below 12 °C outside) for more than 20 minutes or the heating runs with a window open (10 minutes): the room pulses, the warning bar names the window and the time; "Which windows have been open too long?" visits them | free |
+| **Window watch** | warns when a window has been open in the cold (below 12 °C outside) for more than 20 minutes or the heating runs with a window open (10 minutes): the room pulses, the warning bar names the window and the time; "Which windows have been open too long?" visits them. Quiet at night (from release 3): create a helper (toggle) `input_boolean.window_watch_quiet` in Home Assistant, and it does not warn while that is on – turned on by an automation at night or when the blinds are down | free |
 
 ## 8. The dashboard card
 
@@ -1197,7 +1279,7 @@ idle_orbit: false
 NeonPlan 3D is built for wall tablets such as the Amazon Fire:
 
 - **No work while idle.** If nothing changes, the view draws not a single frame. The FPS display then reads "At rest (0 fps)".
-- **Tablet quality level:** "Auto" picks it by itself on Fire tablets. Patterns, shadows, halos and particles are left out, animations run at half rate.
+- **Tablet quality level:** "Auto" picks it by itself on Fire tablets. Patterns, shadows, halos and particles are left out. Moving decorations (energy flow, solar fields, sound rings, pool water, robot vacuums, colour effects, pets) run at about 5 frames a second and stand still 30 seconds after the last touch; a tap, or something new that starts to move, wakes them. Measured values alone (watts, temperature) show at most every 2 seconds, switches, doors and alarms at once.
 - **Kiosk options of the card:** After a few minutes without a touch the card returns to the start view. At night it dims by the sun or by the clock. As a screensaver the house turns slowly.
 - **Warnings** can jump into the affected room by themselves.
 - In portrait the room panel appears at the bottom.
@@ -1235,6 +1317,11 @@ Home Assistant's own backup includes NeonPlan 3D completely as well.
 - NeonPlan 3D only connects to the internet if you enter a licence key. Then it asks mastershort.de once a day for updates and sends the key and the anonymous installation id.
 - Camera pictures, history and states stay in Home Assistant and are only shown in the browser.
 - Time travel reads the history from Home Assistant's recorder, only for the devices of the plan. It never reads people or their trackers.
+- **Locating** evaluates the Bluetooth signals only in Home Assistant. Nothing about who is where leaves your house.
+- **Help make NeonPlan better (voluntary, off by default):** under **⚙ Settings → 🛟 Help improve** you can switch on anonymous usage and error reports. An admin who has not switched them on sees one invitation in the editor; **Have a look** opens the setting, **Not now** hides it for good on that device. Then at most one report a day (and at most one batch of error messages an hour) goes to api.mastershort.de.
+  - **Sent:** a random id (not Home Assistant's, made when you switch it on), the versions of NeonPlan, Home Assistant and Python, the language, the installed packs and Pro add-ons, counts from the plan (floors, rooms, furniture, linked devices, cameras), device type, browser and system of the screens with frame rate and graphics class, how often each view was opened, and NeonPlan's error messages without names and addresses.
+  - **Never sent:** names, entities, areas, the shape of your floor plan, IP addresses, your Home Assistant installation's id, user names, your licence key – and nothing from locating.
+  - **"View report"** shows exactly the next report before it is sent. **"Delete data"** removes everything already sent. Switching off forgets the id.
 
 ---
 

@@ -19,7 +19,8 @@ import { furnitureName } from "./furniture-names.ts";
 import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
 import { canLift, zonesOf, type LampMount } from "./model.ts";
 import { mountBase, packsVersion } from "./packs.ts";
-import { hasFeature, registerUrl, UNRELEASED } from "./features.ts";
+import { hasFeature, labOn, registerUrl, UNRELEASED } from "./features.ts";
+import { mountLocateLab } from "./locate-lab.ts";
 import { directorOnHere } from "./director.ts";
 import { loadVoice, micProbeDone, screenName, voiceOnHere } from "./load-voice.ts";
 import type { ClockPos } from "./card-config.ts";
@@ -90,6 +91,7 @@ export class Floorplan3dPanel extends LitElement {
     _clean: { state: true },
     _navWrap: { state: true },
     _optsOpen: { state: true },
+    _pinHover: { state: true },
     _accent: { state: true },
     _weather: { state: true },
     _director: { state: true },
@@ -149,6 +151,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _navWrap: boolean;
   /** Phones: the view options (quality, look, markers, FPS) folded behind ⚙ (#131). */
   private declare _optsOpen: boolean;
+  /** The pointer is on 📌: the 3D view marks the point it turns about, the middle of a saved start view (#733). */
+  private declare _pinHover: boolean;
   /** Accent colour of the user's choice ("#rrggbb"), null for the stock cyan; remembered on this device. */
   private declare _accent: string | null;
   /** Weather outside the house in 3D. */
@@ -162,6 +166,7 @@ export class Floorplan3dPanel extends LitElement {
   private declare _screen: string;
 
   private readonly data = new BuildingController(this);
+  private locateLab: (() => void) | null = null;
   /** Time travel (Pro): the last 24 hours replayed, read-only. */
   private readonly tt = new TimeTravel(this);
   /** A ?tt= link was looked at (it starts the time travel once). */
@@ -213,6 +218,7 @@ export class Floorplan3dPanel extends LitElement {
     this._clean = prefs.get("clean") === "1";
     this._navWrap = prefs.get("nav_wrap") === "1";
     this._optsOpen = false;
+    this._pinHover = false;
     this._weather = prefs.get("weather") !== "0";
     this._director = directorOnHere();
     this._micProbe = false;
@@ -500,6 +506,10 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   protected updated(): void {
+    // lab: the locating recorder box for admins (feasibility test, not a feature yet)
+    if (!this.locateLab && this.hass?.user?.is_admin && this.data.building && labOn()) {
+      this.locateLab = mountLocateLab(() => ({ hass: this.hass, building: this.data.building }));
+    }
     // a link with ?tt=07:42 or ?tt=-3h opens the time travel there, once the plan and the packs are loaded
     if (this.ttLinked || !this.data.building || !packsVersion() || this._mode !== "view" || !this.view3d()) return;
     this.ttLinked = true;
@@ -545,6 +555,8 @@ export class Floorplan3dPanel extends LitElement {
     super.disconnectedCallback();
     window.removeEventListener("keydown", this.onKey);
     this.tt.stop();
+    this.locateLab?.();
+    this.locateLab = null;
   }
 
   protected render() {
@@ -687,6 +699,10 @@ export class Floorplan3dPanel extends LitElement {
                         title=${`${this.t("start_view")}: ${this.t("start_view_set")}`}
                         aria-label=${this.t("start_view_set")}
                         @click=${() => this.rememberStartView()}
+                        @mouseenter=${() => (this._pinHover = true)}
+                        @mouseleave=${() => (this._pinHover = false)}
+                        @focus=${() => (this._pinHover = true)}
+                        @blur=${() => (this._pinHover = false)}
                       >
                         📌
                       </button>
@@ -947,6 +963,7 @@ export class Floorplan3dPanel extends LitElement {
       <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""}">
         <fp3d-view3d
           class="fp3d-body"
+          .pivotMark=${this._pinHover}
           .hass=${this.tt.hass(this.hass)}
           .replay=${this.tt.session?.replay ?? null}
           .building=${b}

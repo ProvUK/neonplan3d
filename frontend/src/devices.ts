@@ -2,7 +2,7 @@
 // what their state looks like. Pure functions (no Lit, no three.js) so they can be tested directly.
 
 import type { Furniture, EntityRef, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
-import { centroid, pointInPolygon } from "./model.ts";
+import { centroid, outdoorZones, pointInPolygon } from "./model.ts";
 import { isRobotVacuum, packMotion, packScreen } from "./packs.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 
@@ -89,6 +89,20 @@ export function kindOf(entityId: string): DeviceKind | null {
 /** Scenes and scripts belong to the room panel, not to a spot in the room. */
 export function isPlaceable(kind: DeviceKind | null): boolean {
   return kind !== null && kind !== "scene" && kind !== "script";
+}
+
+/** Covers that have no slats, whatever their features say (KNX reports tilt buttons for roller shutters, #704). */
+const NO_SLATS = new Set(["shutter", "garage", "gate", "door", "curtain", "awning", "window", "shade"]);
+
+/**
+ * Open/close-tilt buttons for a cover: only when it has slats – it reports a tilt position, or it is no roller
+ * shutter, garage door, curtain … (those never have slats, even when an integration announces the features).
+ */
+export function coverTiltButtons(st: HassEntity | undefined): boolean {
+  if (!st) return false;
+  const features = ((st.attributes.supported_features as number) ?? 0) | 0;
+  if (!(features & 48)) return false;
+  return typeof st.attributes.current_tilt_position === "number" || !NO_SLATS.has(String(st.attributes.device_class ?? ""));
 }
 
 export function entityAreaId(hass: HomeAssistant, entityId: string): string | null {
@@ -1000,7 +1014,10 @@ export function furnitureEntities(hass: HomeAssistant, floors: readonly Floor[])
       const lamp = f.type in LAMP_NAMES;
       const pattern = lamp ? LAMP_NAMES[f.type] : (FURNITURE_NAMES[f.type] ?? (isRobotVacuum(f.type) ? FURNITURE_NAMES.robot_vacuum : undefined));
       if (!pattern && f.entity == null && f.power == null) continue;
-      const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
+      // an awning hangs outside: the terrace or garden area it stands over counts as its room (#688)
+      const room =
+        floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points)) ??
+        (f.type === "awning" ? outdoorZones(floor).find((z) => pointInPolygon([f.x, f.z], z.points)) : undefined);
       const ids = room ? primaryEntities(hass, areaEntities(hass, room.area_id)) : [];
       const name = (id: string) => `${id} ${entityName(hass, id)}`;
       let entity: string | null = f.entity === "none" ? null : (f.entity ?? null);
@@ -1023,6 +1040,9 @@ export function furnitureEntities(hass: HomeAssistant, floors: readonly Floor[])
             media.find((id) => hass.states[id]?.attributes.device_class === "tv") ??
             media.find((id) => pattern?.test(name(id))) ??
             (MEDIA_FURNITURE.has(f.type) ? (media[0] ?? null) : null);
+        } else if (f.type === "awning") {
+          // an awning runs on a cover (#688): one whose name says awning, else none (a roller blind is no awning)
+          entity = free.find((id) => id.startsWith("cover.") && (pattern?.test(name(id)) || hass.states[id]?.attributes.device_class === "awning")) ?? null;
         } else if (pattern) {
           entity = free.find((id) => ["switch", "media", "fan"].includes(kindOf(id) ?? "") && pattern.test(name(id))) ?? null;
         }

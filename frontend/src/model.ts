@@ -124,6 +124,11 @@ export interface Opening {
   tilt_invert?: boolean;
   /** Door: drawn closed when no sensor says otherwise (default: half open, so the door is seen). */
   shut?: boolean;
+  /**
+   * Door: how far the leaf stands open, in degrees – without a sensor always, with one while it reports open.
+   * null (default) = as before: half open (about 43°) without a sensor, fully open (about 86°) with one.
+   */
+  open_angle?: number | null;
   /** The contact sensors report the other way round (on = closed, #329). */
   contact_invert?: boolean;
   /** Windows: no rain warning for this one (it may stay open in the rain, under a canopy, D328). */
@@ -217,6 +222,8 @@ export interface Furniture {
   bin_source?: EntityRef;
   /** Haushalt Pro: own words that find this bin's entries in the calendar (comma separated; null = by its kind). */
   bin_match?: string | null;
+  /** Haushalt Pro: an entity that is on while the bin is out (input_boolean, switch, binary_sensor; null = none). */
+  bin_out?: EntityRef;
   /** Haushalt Pro, mailbox: the sensor of the door it is emptied through (post counts until it opens). */
   mailbox_door?: EntityRef;
   /** Haushalt Pro, plant: a plant.* entity or a soil moisture sensor; thirsty below `moisture_min`. */
@@ -231,6 +238,9 @@ export interface Furniture {
   service?: EntityRef;
   /** Haushalt Pro: the number (percent or days left) at or below which the service is due (null = 10). */
   service_min?: number | null;
+  /** Haushalt Pro: a second service (a robot vacuum's dock), like `service` with its own threshold `service2_min`. */
+  service2?: EntityRef;
+  service2_min?: number | null;
   /** Haushalt Pro, fridge: minutes a door may stand open before it warns (null = 2). */
   door_alarm?: number | null;
   /** An own symbol for the marker: a Material Design icon name without "mdi:" (null = by kind). */
@@ -305,12 +315,17 @@ export interface Furniture {
   car?: CarLinks | null;
   /** Parking spots: size factor of the vehicle (1 = the pack item's size). */
   scale?: number;
+  /** What a module keeps for this item (its settings, the entities it found), by the module's id. */
+  mods?: ModuleData | null;
   /** Parking spots: a sensor naming the kind of vehicle, and which vehicle each state means. */
   type_entity?: string | null;
   types?: { state: string; vehicle: string }[];
 }
 
 export type LampMount = "ceiling" | "floor" | "table" | "wall";
+
+/** A module's own data on an item of the plan, by the module's id ("mastershort.window_watch": {…}); plain JSON. */
+export type ModuleData = Record<string, Record<string, unknown>>;
 
 /** How a device's marker shows in 3D (null = automatic by the marker mode). */
 export const MARKER_SHOWS = ["always", "no_power", "never"] as const;
@@ -452,6 +467,13 @@ export interface RoofSection {
    */
   end_u0?: RoofEnd | null;
   end_u1?: RoofEnd | null;
+  /**
+   * Turned (degrees, clockwise as the plan shows it) about `pivot`: a wing at an angle (#634, #724). x0 … z1 and
+   * the axis describe the section before the turn; null or 0 = not turned (every roof drawn so far).
+   */
+  rotation?: number | null;
+  /** The point it turns about, set with the first turn and moved with the section; null = the rectangle's middle. */
+  pivot?: Vec2 | null;
 }
 
 export interface RoofSettings {
@@ -706,6 +728,11 @@ export interface BuildingSettings {
   rain_entity?: string | null;
   /** Warnings name the device after the room (default on); off = only "Room · Smoke" when the warning has a room (#374). */
   alert_names?: boolean;
+  /**
+   * Warn when a window or door contact has been unavailable for 10 minutes (an empty battery, out of radio reach):
+   * the window would look shut although nobody knows. Off by default.
+   */
+  alert_unavailable?: boolean;
   /** An entity that reports a power outage (a grid or UPS sensor); null = no outage warning (#214). */
   outage_entity?: string | null;
   /** Sunlight falls through the windows as patches on the floor (default on, #266). */
@@ -715,10 +742,15 @@ export interface BuildingSettings {
   fake_screens?: boolean;
   /** The ground around the house: its height and the earth around cellars. */
   terrain?: Terrain | null;
-  /** Haushalt Pro: from which hour the day before a bin glows (null = 14) and until which hour on the day (null = 12). */
-  household?: { bin_from?: number | null; bin_until?: number | null; notes?: EntityRef } | null;
+  /**
+   * Haushalt Pro: from which hour the day before a bin glows (null = 14) and until which hour on the day (null = 12);
+   * only the bins of the next pickup wear a tag (`bin_next_only`), tags only from `bin_days` days before (null = always).
+   */
+  household?: { bin_from?: number | null; bin_until?: number | null; notes?: EntityRef; bin_next_only?: boolean | null; bin_days?: number | null } | null;
   /** The floor the editor opens with (null: the first of the list) (D418). */
   editor_floor?: string | null;
+  /** Located people in 3D: a neon figure (null = default), a pin, or not shown. */
+  person_look?: "figure" | "pin" | "off" | null;
   /** Fun pack "Halloween": the ghost that floats through the house now and then (on unless switched off). */
   halloween?: { ghost?: boolean } | null;
   /** Plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident. */
@@ -915,6 +947,8 @@ export interface OutdoorArea {
   rim?: number | null;
   /** Pool Pro: the pool's entities (water temperature, heat pump, filter pump, light, pH, chlorine, cover). */
   pool?: PoolLinks | null;
+  /** What a module keeps for this area, by the module's id. */
+  mods?: ModuleData | null;
   /** Outdoor areas like rooms (#100): a name and a Home Assistant area – a tap opens it with its devices like a room. */
   name?: string | null;
   area_id?: string | null;
