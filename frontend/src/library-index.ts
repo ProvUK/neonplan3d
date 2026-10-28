@@ -89,6 +89,7 @@ const BASIC: Record<string, [Kind, Room[]]> = {
   lamp_uplight: ["lamp", ["living", "bedroom", "office"]],
   lamp_table: ["lamp", ["living", "bedroom", "office"]],
   lamp_wall: ["lamp", []],
+  sign_neon: ["deco", []],
   led_strip: ["lamp", []],
   lamp_bollard: ["lamp", ["garden"]],
   lamp_garden: ["lamp", ["garden"]],
