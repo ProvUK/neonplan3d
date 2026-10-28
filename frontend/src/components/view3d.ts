@@ -3451,6 +3451,7 @@ export class Fp3dView3d extends LitElement {
 
   /** A lamp: its 3D model glows with the linked light and is tapped directly. */
   private lampMarker(hass: HomeAssistant, floor: Building["floors"][number], f: Furniture, entity: string | null, fanBlades = false): DeviceMarker & { fromFurniture: boolean } {
+    const SIGN_NEON_GREEN: [number, number, number] = [0.15, 1, 0.3];
     const st = entity ? hass.states[entity] : undefined;
     const item = packItem(f.type);
     const model = LAMP_MODEL[f.type] ?? item?.light ?? "floor";
@@ -3461,7 +3462,7 @@ export class Fp3dView3d extends LitElement {
       ? outdoorGround(floor, f.x, f.z) + (f.mount_y ?? 0)
       : f.mount_y != null && !item
       ? f.mount_y
-      : item || model === "wall" || model === "strip"
+      : item || model === "wall" || model === "sign" || model === "strip"
       ? mountBase(floor, f)
       : model === "table"
         ? surfaceHeight(floor, f.x, f.z, f.h)
@@ -3494,6 +3495,7 @@ export class Fp3dView3d extends LitElement {
       uplight: base + f.h + 0.25,
       table: base + f.h + 0.2,
       wall: base + f.h + 0.2,
+      sign: base + f.h + 0.2,
       strip: f.upright ? base + f.w + 0.15 : Math.max(0.3, base - 0.2),
       bollard: base + f.h + 0.25,
       garden: base + f.h + 0.25,
@@ -3514,7 +3516,19 @@ export class Fp3dView3d extends LitElement {
       text: st ? stateText(hass, st) : "",
       active: st ? isActive(st) : false,
       unavailable: st ? isUnavailable(st) : false,
-      glow: fanBlades ? null : st ? scaleGlow(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_scale) : null,
+      // a neon sign's tube is a fixed colour of glass, not an RGB bulb: it glows green on its own when
+      // nothing is linked, or green whenever its linked entity is on, regardless of that entity's own colour
+      glow: fanBlades
+        ? null
+        : f.type === "sign_neon"
+          ? entity
+            ? st && isActive(st)
+              ? scaleGlow({ color: SIGN_NEON_GREEN, level: 1 }, f.glow_scale)
+              : null
+            : scaleGlow({ color: SIGN_NEON_GREEN, level: 1 }, f.glow_scale)
+          : st
+            ? scaleGlow(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_scale)
+            : null,
       lamp: model,
       rotation: f.rotation,
       mirror: !!f.mirror,

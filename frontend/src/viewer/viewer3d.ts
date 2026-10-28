@@ -74,7 +74,8 @@ import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
 import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 
 export type { Theme } from "./theme.ts";
-import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./geo.ts";
+import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, shade, triangulate } from "./geo.ts";
+import { signSegments } from "./neon-sign-font.ts";
 import { buildLightSurface, lightColors, roomIndexAt, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
 import { buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
@@ -209,7 +210,7 @@ export interface TrailSpot {
   age: number;
 }
 
-export type LampModel = "ceiling" | "ceiling_fan" | "downlight" | "spot" | "panel" | "pendant" | "fan" | "floor" | "uplight" | "table" | "wall" | "strip" | "bollard" | "garden";
+export type LampModel = "ceiling" | "ceiling_fan" | "downlight" | "spot" | "panel" | "pendant" | "fan" | "floor" | "uplight" | "table" | "wall" | "sign" | "strip" | "bollard" | "garden";
 
 /** Piece of energy cable (floor-local coordinates); the flow runs from a to b. */
 /** A ray from the camera through the pointer, in building coordinates (heights above the ground). */
@@ -434,6 +435,7 @@ const LAMP_SIZE: Record<LampModel, [number, number, number]> = {
   floor: [0.42, 0.42, 1.7],
   table: [0.26, 0.26, 0.45],
   wall: [0.22, 0.12, 0.2],
+  sign: [0.85, 0.05, 0.28],
   strip: [2, 0.04, 0.03],
 };
 
@@ -2164,6 +2166,7 @@ export class FloorplanViewer {
         uplight: [base + h, "up"],
         table: [base + h - 0.1, "omni"],
         wall: [base + 0.1, "wall"],
+        sign: [base + h * 0.5, "wall"],
         // a strip under the ceiling or the wall cabinets shines down; one low down (skirting,
         // behind a cabinet) washes the wall and the floor around it from below
         strip: [base + Math.max(0.02, h) - 0.01, base < LOW_STRIP ? "up" : "ceiling"],
@@ -3309,6 +3312,7 @@ export class FloorplanViewer {
         uplight: base + h,
         table: base + h - 0.09,
         wall: base + h / 2,
+        sign: base + h / 2,
         strip: base + Math.max(0.02, h) - 0.01,
         bollard: base + h - 0.08,
         garden: base + h - 0.03,
@@ -3331,8 +3335,8 @@ export class FloorplanViewer {
             hc.push(...glow.color.map((c) => c * glow.level * 0.7 * 0.6));
           } else push(d.x + Math.cos(ang) * w * t, d.z + Math.sin(ang) * w * t, 0.6);
         }
-      else if (d.lamp === "wall") {
-        const at = this.packLightAt(d);
+      else if (d.lamp === "wall" || d.lamp === "sign") {
+        const at = d.lamp === "wall" ? this.packLightAt(d) : null;
         if (at) {
           hp.push(...at);
           hc.push(...glow.color.map((c) => c * glow.level * 0.7));
@@ -5635,6 +5639,48 @@ export function pushLampModel(
       const y0 = d.base ?? WALL_LAMP_Y;
       box(-w / 2 + 0.03, w / 2 - 0.03, -dd / 2, -dd / 2 + 0.02, y0, y0 + h, LAMP_BODY);
       box(-w / 2, w / 2, -dd / 2 + 0.02, dd / 2, y0 + h * 0.15, y0 + h * 0.85, shadeCol);
+      break;
+    }
+    case "sign": {
+      // a wall plaque: a dark backing plate, with the wording raised just off it as little glowing
+      // tube segments – the same straight-stroke idea as every neon edge elsewhere, just drawn as boxes
+      const y0 = d.base ?? WALL_LAMP_Y;
+      box(-w / 2, w / 2, -dd / 2, -dd / 2 + 0.015, y0, y0 + h, LAMP_BODY);
+      const th = Math.max(0.012, Math.min(w, h) * 0.035);
+      const zNear = -dd / 2 + 0.015;
+      const zFar = zNear + 0.014;
+      const bright = new Color(shadeCol);
+      const dim = shade(shadeCol, 0.55);
+      const edge = shade(shadeCol, 0.8);
+      const P = (x: number, y: number, z: number): number[] => {
+        const [X, Z] = L(x, z);
+        return [X, y0 + y, Z];
+      };
+      const quad = (p0: number[], p1: number[], p2: number[], p3: number[], c: Color) => {
+        buf.tri(p0, p1, p2, c, c, c, undefined, ALWAYS);
+        buf.tri(p0, p2, p3, c, c, c, undefined, ALWAYS);
+      };
+      for (const seg of signSegments(w, h)) {
+        const sdx = seg.x1 - seg.x0;
+        const sdy = seg.y1 - seg.y0;
+        const len = Math.hypot(sdx, sdy) || 1e-6;
+        const nx = (-sdy / len) * (th / 2);
+        const ny = (sdx / len) * (th / 2);
+        const f0 = P(seg.x0 + nx, seg.y0 + ny, zFar);
+        const f1 = P(seg.x1 + nx, seg.y1 + ny, zFar);
+        const f2 = P(seg.x1 - nx, seg.y1 - ny, zFar);
+        const f3 = P(seg.x0 - nx, seg.y0 - ny, zFar);
+        const n0 = P(seg.x0 + nx, seg.y0 + ny, zNear);
+        const n1 = P(seg.x1 + nx, seg.y1 + ny, zNear);
+        const n2 = P(seg.x1 - nx, seg.y1 - ny, zNear);
+        const n3 = P(seg.x0 - nx, seg.y0 - ny, zNear);
+        quad(f0, f1, f2, f3, bright);
+        quad(n3, n2, n1, n0, dim);
+        quad(n0, n1, f1, f0, edge);
+        quad(n2, n3, f3, f2, edge);
+        quad(n1, n2, f2, f1, edge);
+        quad(n3, n0, f0, f3, edge);
+      }
       break;
     }
     case "strip": {

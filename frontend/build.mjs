@@ -132,13 +132,14 @@ function copyFonts() {
 // card editor 268 KB on 2026-10-25 (was 267): the texts of the invitation to the usage reports
 // 3D 816 KB on 2026-10-25 (was 812): free walls drawn as outer walls find their outside (blinds, glass), pets walk on at their own pace on tablets, door glass on both faces
 // 3D 812 KB, editor 932 KB, card editor 272 KB on 2026-10-26 (ProvUK): gates cut into a fence line (close-board leaf, swing animation) and the room panel's minimise toggle, and their texts
+// 3D 824 KB on 2026-10-28 (ProvUK): the neon sign furniture type (stick-font tube strokes) and its texts
 const BUDGET = {
   "neonplan3d.js": 704 * 1024,
   "neonplan3d-fun.js": 40 * 1024,
   "neonplan3d-voice.js": 60 * 1024,
   "neonplan3d-locate.js": 160 * 1024,
   "neonplan3d-timetravel.js": 120 * 1024,
-  "neonplan3d-3d.js": 820 * 1024,
+  "neonplan3d-3d.js": 828 * 1024,
   "neonplan3d-editor.js": 942 * 1024,
   "neonplan3d-card-editor.js": 272 * 1024,
 };

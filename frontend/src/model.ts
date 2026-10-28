@@ -1244,6 +1244,7 @@ export const FURNITURE_TYPES = [
   "lamp_floor",
   "lamp_table",
   "lamp_wall",
+  "sign_neon",
   "led_strip",
   "lamp_uplight",
   "lamp_bollard",
@@ -1320,7 +1321,7 @@ export const FURNITURE_TYPES = [
 
 /** Furniture library sections (the editor lists them in this order). */
 export const FURNITURE_GROUPS: Record<string, FurnitureType[]> = {
-  lights: ["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "lamp_fan", "lamp_ceiling_fan", "lamp_floor", "lamp_uplight", "lamp_table", "lamp_wall", "led_strip", "lamp_bollard", "lamp_garden"],
+  lights: ["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "lamp_fan", "lamp_ceiling_fan", "lamp_floor", "lamp_uplight", "lamp_table", "lamp_wall", "sign_neon", "led_strip", "lamp_bollard", "lamp_garden"],
   living: ["sofa", "sofa_l", "sofa_u", "armchair", "stool", "coffee_table", "tv_board", "tv_wall", "sideboard", "shelf", "plant", "rug"],
   dining: ["table", "table_round", "chair", "bench", "corner_bench", "bar_stool"],
   kitchen: ["kitchen", "kitchen_wall", "kitchen_tall", "island", "worktop", "sink", "stove", "dishwasher", "fridge"],
@@ -1355,6 +1356,7 @@ export const LAMP_TYPES = new Set<string>([
   "lamp_uplight",
   "lamp_table",
   "lamp_wall",
+  "sign_neon",
   "led_strip",
   "lamp_bollard",
   "lamp_garden",
@@ -1674,6 +1676,7 @@ export const FURNITURE_SIZE: Record<FurnitureType, [number, number, number]> = {
   lamp_floor: [0.4, 0.4, 1.7],
   lamp_table: [0.28, 0.28, 0.45],
   lamp_wall: [0.22, 0.12, 0.2],
+  sign_neon: [0.85, 0.05, 0.28],
   led_strip: [2.0, 0.04, 0.03],
   coffee_table: [1.1, 0.6, 0.42],
   tv_wall: [1.3, 0.08, 0.75],
@@ -1936,5 +1939,6 @@ export const LAMP_MODEL: Record<string, LampModel> = {
   lamp_floor: "floor",
   lamp_table: "table",
   lamp_wall: "wall",
+  sign_neon: "sign",
   led_strip: "strip",
 };

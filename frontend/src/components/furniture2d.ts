@@ -204,6 +204,13 @@ export function furnitureSymbol(type: string, w: number, d: number): Part[] | ty
     }
     case "lamp_wall":
       return [rect(-w / 2, -d / 2, w / 2, -d / 2 + 0.03, "fp3d-sym-fill"), ellipse(0, 0.01, w * 0.4, d * 0.4)];
+    case "sign_neon":
+      // a plaque against the wall with two lines of "writing"
+      return [
+        rect(-w / 2, -d / 2, w / 2, -d / 2 + 0.02, "fp3d-sym-fill"),
+        line(-w * 0.35, 0.03, w * 0.35, 0.03, "fp3d-sym-strong"),
+        line(-w * 0.3, -0.05, w * 0.3, -0.05, "fp3d-sym-strong"),
+      ];
     case "led_strip":
       return [line(-w / 2, 0, w / 2, 0, "fp3d-sym-strong")];
     case "wall_switch":

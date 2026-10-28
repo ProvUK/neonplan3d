@@ -282,7 +282,7 @@ export function mountBase(floor: Floor, f: Pick<Furniture, "type" | "x" | "z" | 
   const tech = techBase(f, floor.height);
   if (tech !== null) return tech;
   // wall lights at the usual height, LED strips just under the ceiling
-  if (f.type === "lamp_wall") return WALL_LAMP_Y;
+  if (f.type === "lamp_wall" || f.type === "sign_neon") return WALL_LAMP_Y;
   if (LIFT_SPOTS.has(f.type)) return Math.max(0, floor.height - spotDepth(f.type, f.h));
   if (f.type === "led_strip") return Math.max(0, floor.height - 0.04 - Math.max(0.02, f.h));
   switch (item?.mount) {
