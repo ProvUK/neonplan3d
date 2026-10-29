@@ -287,14 +287,30 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
         if (st.unlocked && atStart === info.hingeAtStart) splitBox(frames, leafTf, lw - 0.022, lw + 0.004, -thick - 0.006, 0.006, 0.03, T - 0.03, shade(UNLOCKED, 0.85), shade(UNLOCKED, 1), cut, leafBucket);
       }
     } else if (info.opening.type === "garage") {
-      // sectional door: the closed part hangs in the opening, the open part lies under the ceiling
       const closed = Math.min(1, Math.max(0, st.cover ?? 1));
       const panelC = new Color(0xd4e0ff);
       const plane = info.faceRoom - 0.03;
-      const bottom = T * (1 - closed);
-      if (closed > 0.01) panel(blinds, tf, 0.02, W - 0.02, plane, bottom, T, panelC, cut, bucket, 0.5);
-      const up = (1 - closed) * T;
-      if (up > 0.01) flatPanel(blinds, tf, 0.02, W - 0.02, plane, plane + up, T + 0.03, panelC, bucket, 0.5);
+      if (openingStyle(info.opening, info.exterior) === "up_over") {
+        // up-and-over door: a single rigid panel, hinged near the header, tilts up and into the garage
+        // as it opens until it lies flat under the ceiling – it never splits like the sectional door
+        const theta = (1 - closed) * (Math.PI / 2);
+        const dn = T * Math.sin(theta);
+        const dy = T * Math.cos(theta);
+        const top = tf(0.02, plane, T);
+        const topR = tf(W - 0.02, plane, T);
+        const bot = tf(W - 0.02, plane + dn, T - dy);
+        const botL = tf(0.02, plane + dn, T - dy);
+        // a leaf that stands open at all stays visible even if it swings above the floor's cut height
+        const leafBucket = closed < 0.99 ? ALWAYS : bucket;
+        blinds.tri(top, topR, bot, panelC, panelC, panelC, [0, 0, 1, 0, 1, 1], leafBucket);
+        blinds.tri(top, bot, botL, panelC, panelC, panelC, [0, 0, 1, 1, 0, 1], leafBucket);
+      } else {
+        // sectional door: the closed part hangs in the opening, the open part lies under the ceiling
+        const bottom = T * (1 - closed);
+        if (closed > 0.01) panel(blinds, tf, 0.02, W - 0.02, plane, bottom, T, panelC, cut, bucket, 0.5);
+        const up = (1 - closed) * T;
+        if (up > 0.01) flatPanel(blinds, tf, 0.02, W - 0.02, plane, plane + up, T + 0.03, panelC, bucket, 0.5);
+      }
     } else if (info.opening.type === "gate") {
       // slim end posts, sturdier than the fence's own, and a close-board leaf swinging on its hinge
       const n0 = -info.faceOut - 0.01;

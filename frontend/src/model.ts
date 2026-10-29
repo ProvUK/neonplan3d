@@ -1710,11 +1710,14 @@ export const OPENING_DEFAULTS = {
 export const DOOR_STYLES = ["interior", "front", "front_glass", "sidelight", "sidelights", "glass", "sliding", "passage"] as const;
 /** "glass_wall": fixed floor-to-ceiling glazing without sashes, slim mullions (an indoor glass wall, #163). */
 export const WINDOW_STYLES = ["standard", "bars", "glass_wall"] as const;
-export type OpeningStyle = (typeof DOOR_STYLES)[number] | (typeof WINDOW_STYLES)[number];
+/** Garage door looks: "sectional" hangs then folds flat under the ceiling; "up_over" is one rigid panel tilting up as a whole. */
+export const GARAGE_STYLES = ["sectional", "up_over"] as const;
+export type OpeningStyle = (typeof DOOR_STYLES)[number] | (typeof WINDOW_STYLES)[number] | (typeof GARAGE_STYLES)[number];
 
 /** The style an opening is drawn with: its own, or the automatic one for its wall. */
 export function openingStyle(o: Pick<Opening, "type" | "style">, exterior: boolean): OpeningStyle {
   if (o.type === "door") return o.style && (DOOR_STYLES as readonly string[]).includes(o.style) ? o.style : exterior ? "front" : "interior";
+  if (o.type === "garage") return o.style && (GARAGE_STYLES as readonly string[]).includes(o.style) ? o.style : "sectional";
   return o.style && (WINDOW_STYLES as readonly string[]).includes(o.style) ? o.style : "standard";
 }
 
@@ -1776,7 +1779,8 @@ export const OPENING_PRESETS = {
   window_double: { type: "window", leaves: 2, width: 1.6, sill: 0.9, height: 1.3 },
   terrace: { type: "window", leaves: 1, width: 1.0, sill: 0, height: 2.1 },
   terrace_double: { type: "window", leaves: 2, width: 1.8, sill: 0, height: 2.1 },
-  garage: { type: "garage", leaves: 1, width: 2.5, sill: 0, height: 2.1 },
+  garage: { type: "garage", leaves: 1, width: 2.5, sill: 0, height: 2.1, style: "sectional" },
+  garage_up_over: { type: "garage", leaves: 1, width: 2.5, sill: 0, height: 2.1, style: "up_over" },
   glass_wall: { type: "window", leaves: 1, width: 2.0, sill: 0, height: 2.4, style: "glass_wall" },
   gate: { type: "gate", leaves: 1, width: 1.0, sill: 0, height: 1.0 },
 } as const satisfies Record<string, { type: OpeningType; leaves: 1 | 2; width: number; sill: number; height: number; style?: OpeningStyle }>;
@@ -1786,7 +1790,7 @@ export type OpeningPreset = keyof typeof OPENING_PRESETS;
 /** The preset an opening matches (by type, leaves, style and whether it reaches the floor). */
 export function openingPreset(o: Pick<Opening, "type" | "leaves" | "sill" | "style">): OpeningPreset {
   if (o.type === "gate") return "gate";
-  if (o.type === "garage") return "garage";
+  if (o.type === "garage") return o.style === "up_over" ? "garage_up_over" : "garage";
   if (o.type === "window" && o.style === "glass_wall") return "glass_wall";
   const two = o.leaves === 2;
   if (o.type === "door") {

@@ -4674,6 +4674,9 @@ export class Fp3dEditor extends LitElement {
     const defaults = OPENING_PRESETS[preset];
     const type: OpeningType = defaults.type;
     const width = round(Math.min(defaults.width, Math.max(0.3, len - 0.1)));
+    // a preset's own style (e.g. "front_glass", "up_over") must come along to the next placement too,
+    // not just the one the chip was clicked on (the tool stays active for several in a row)
+    const style = "style" in defaults ? defaults.style : null;
     const opening: Opening = {
       id: uid("opening"),
       room_id: best.roomId ?? room.id,
@@ -4687,6 +4690,7 @@ export class Fp3dEditor extends LitElement {
       hinge: "left",
       leaves: defaults.leaves,
       swing: "in",
+      style,
       cover: null,
       contact: null,
       contact2: null,

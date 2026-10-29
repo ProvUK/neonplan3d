@@ -34,6 +34,15 @@ test("a door without a style is a front door in an exterior wall and a room door
   assert.equal(openingPreset({ type: "door", leaves: 1, sill: 0, style: null }), "door");
 });
 
+test("a garage door without a style is sectional; \"up_over\" is a preset of its own", () => {
+  assert.equal(openingStyle({ type: "garage", style: null }, true), "sectional");
+  assert.equal(openingStyle({ type: "garage", style: "up_over" }, true), "up_over");
+  // a door or window style on a garage door falls back to the automatic choice
+  assert.equal(openingStyle({ type: "garage", style: "front" }, true), "sectional");
+  assert.equal(openingPreset({ type: "garage", leaves: 1, sill: 0, style: "up_over" }), "garage_up_over");
+  assert.equal(openingPreset({ type: "garage", leaves: 1, sill: 0, style: null }), "garage");
+});
+
 const item = (type: string, x: number, z: number, h: number, extra: Partial<Furniture> = {}): Furniture => ({
   id: `${type}_${x}`,
   type,

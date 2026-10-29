@@ -114,9 +114,12 @@ ROOM_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
-# door looks (room door, front doors with glass and sidelights, glass and sliding door) and window looks
+# door looks (room door, front doors with glass and sidelights, glass and sliding door), window looks
+# and garage door looks (sectional: hangs then folds flat under the ceiling; up_over: one rigid panel
+# tilting up as a whole)
 _OPENING_STYLES = ["interior", "front", "front_glass", "sidelight", "sidelights", "glass", "sliding", "passage"]
 _OPENING_STYLES += ["standard", "bars", "glass_wall"]
+_OPENING_STYLES += ["sectional", "up_over"]
 
 OPENING_SCHEMA = vol.Schema(
     {
